@@ -1,0 +1,44 @@
+<html>
+<head>
+<title>Circular Testing Page</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/base.css">
+
+<!-- BRYTHON -->
+<link rel="pythonpath" href="lib" hreflang="py" />
+<script src="lib/brython/www/src/brython_dist.js"></script>
+
+    <!-- APP -->
+<script type="text/python">
+
+from browser import document as doc
+from circular.console import Console
+cons = Console(doc["console"])
+
+</script>
+    
+<script>
+var onLoadHandler = function() {
+        brython({'debug':1,'profile':2,'profile_start':false});
+};
+</script>
+
+</head>
+
+<!-- 3. Display the application -->
+<body onload="onLoadHandler()">
+    
+    <div id='test' class="{{ ' '.join(classes) }}">
+    Ahoj {{ name }} {{ surname }}!
+        <ul>
+            <li tpl-for="colour in colours if not colour == 'white'" style='color:{{ colour }};'>{{ colour }}</li>
+        </ul>
+    </div>
+    
+    <div>
+        <textarea id='console' spellcheck="false"></textarea>
+    </div>
+
+</body>
+
+</html>

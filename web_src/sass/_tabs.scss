@@ -1,0 +1,13 @@
+ul[data-widget="tabbar"] {
+    margin-bottom: 0px;
+
+    li {
+        display:inline-block;
+        padding:0.5em;
+        border-right: solid 1px $light-gray;
+    }
+
+    li.active {
+        box-shadow: 0px 2px 2px 0 $active-shadow-color;
+    }
+}

@@ -1,0 +1,8 @@
+www
+*pyc
+*~
+*.kdev4
+*__pycache__*
+virtual_env*
+.cache/
+.sass-cache/

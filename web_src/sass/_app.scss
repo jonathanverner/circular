@@ -1,0 +1,35 @@
+html, body, #app {
+    height:100%;
+}
+
+body {
+    margin:0px;
+    height:100%;
+}
+#menubar {
+    box-shadow: 1px 1px 1px 0px #101010;
+}
+#tree {
+    border:solid 1px gray;
+    width:20%;
+    height:100%;
+    float:left;
+    background-color:$tree-background;
+}
+#tabHeader {
+    margin-top:1px;
+    width:100%;
+}
+#tabs,.CodeMirror,#tabContent {
+    height:100%;
+}
+#tabContent {
+    margin-top:0px;
+    border:solid 1px $light-gray;
+    width:100%;
+}
+.CodeMirror {
+    margin-top:3px;
+    min-width:100px;
+    display:inline-block;
+}

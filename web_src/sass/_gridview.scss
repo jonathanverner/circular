@@ -1,0 +1,46 @@
+[data-widget='GridView'] {
+    overflow:scroll;
+
+    /* Prevent selection of text */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+
+    li {
+        list-style-type:none;
+        display:inline-block;
+        margin:1em;
+        cursor:pointer;
+
+        [data-widget='IconLabel'] {
+            padding:0.5em;
+        }
+
+        [data-widget='IconLabel']:hover {
+            background-color:$hover-bg;
+        }
+
+        [data-widget='IconLabel']:before {
+            font-family:'Glyphicons Halflings';
+            font-size:20pt;
+            display:block;
+            text-align:center;
+        }
+
+        [data-widget='IconLabel'][data-type='dir']:before {
+            content:"\e117";
+        }
+        [data-widget='IconLabel'][data-type='file']:before {
+            content:"\e022";
+        }
+
+        [data-widget='IconLabel'][data-selected='true'] {
+            background-color:$active-bg;
+            color:$active-fg;
+        }
+
+    }
+}

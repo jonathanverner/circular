@@ -1,0 +1,4 @@
+[submodule "brython"]
+	path = brython
+	url = git@github.com:jonathanverner/brython.git
+	branch = circular

@@ -1,0 +1,38 @@
+ul.w-tree {
+    padding-left:0px;
+}
+.w-tree {
+ li {
+     list-style-type:none;
+ }
+ .w-tree-indented:hover {
+     background-color:lightgray;
+
+ }
+ .w-tree-item {
+     cursor:pointer;
+     display:inline;
+ }
+ .w-icon {
+     font: normal normal normal 18px/1 "Material Design Icons";
+     vertical-align:middle;
+ }
+ .w-icon.file:before {
+     content: mdi('file');
+ }
+ .w-icon.dir:before {
+        content: mdi('folder');
+ }
+ .w-tree-indicator {
+    cursor:pointer;
+    display:inline-block;
+    font: normal normal normal 24px/1 "Material Design Icons";
+    vertical-align:middle;
+  }
+  .w-tree-indicator-open:before {
+      content: mdi('menu-down');
+  }
+  .w-tree-indicator-closed:before {
+      content: mdi('menu-right');
+  }
+}
