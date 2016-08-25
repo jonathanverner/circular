@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-from management import test, web
+from management import test, web, docs
 from management.settings import update_settings
 
 
