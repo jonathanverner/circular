@@ -1,7 +1,5 @@
 from unittest.mock import patch
 
-import tests.brython.browser
-
 from src.circular.utils.events import EventMixin
 
 from src.circular.template.context import Context
@@ -240,7 +238,7 @@ def test_text_plugin():
     assert elem.text == "Hello"
 
 
-@patch('tests.brython.browser.html.COMMENT',Comment)
+@patch('browser.html.COMMENT',Comment)
 def test_generic_plugin():
     text_elem = MockElement('#text')
     text_elem.text = "{{ name }}"
@@ -267,7 +265,7 @@ def test_generic_plugin():
     assert plug.update() is None
     assert text_elem.text == "Jonathan"
 
-@patch('tests.brython.browser.html.COMMENT',Comment)
+@patch('browser.html.COMMENT',Comment)
 def test_interpolated_attr_plugin():
     text_elem = MockElement('#text')
     text_elem.text = "{{ name }}"
@@ -320,7 +318,7 @@ def test_interpolated_attr_plugin():
 def filter_comments(lst):
     return [ e for e in lst if e.tag_name != 'comment' ]
 
-@patch('tests.brython.browser.html.COMMENT',Comment)
+@patch('browser.html.COMMENT',Comment)
 def test_for_plugin():
     div_elem = MockElement('div')
     div_elem.attributes.append(MockAttr('style','{{ c["css"] }}'))
