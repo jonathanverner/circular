@@ -1,13 +1,13 @@
 # Circular
 
-Circular is a Python web-framework somewhat similar to (AngularJS 1)[https://angularjs.org/]. It is built upon the 
-(Brython)[http://http://www.brython.info/] python-to-js compiler.
+Circular is a Python web-framework somewhat similar to [AngularJS 1](https://angularjs.org/). It is built upon the 
+[Brython](http://http://www.brython.info/) python-to-js compiler.
 
 # Hacking
 
 To get the source do:
 
-```
+```shell
 $ git clone git@github.com:jonathanverner/circular.git
 $ cd circular
 $ git submodule init
@@ -21,22 +21,22 @@ more documentation. Currently just use the source (and the tests in tests/circul
 
 For development purposes there is a webpage which contains a python console and a test template
 where you can experiment with the library and your changes to it. This webpage is located in
-web_src. The page uses some stylesheets which are compiled from (Sass)[http://sass-lang.com/] 
-sources and icons from the (Material Design Icons)[http://materialdesignicons.com].
+web_src. The page uses some stylesheets which are compiled from [Sass](http://sass-lang.com/) 
+sources and icons from the [Material Design Icons](http://materialdesignicons.com).
 
-(Fabric)[http://www.fabfile.org/] is used to automate building the stylesheets and copying them 
+[Fabric](http://www.fabfile.org/) is used to automate building the stylesheets and copying them 
 to the right place (`www/css`, `www/fonts`). You can install fabric either using `pip`
 (e.g. `pip install fabric`) or your package manager (e.g. `sudo apt-get install fabric`).
 Then compiling and copying the stylesheets is just a matter of
 
-```
+```shell
 $ fab web.deploy
 ```
 
 Note that some python libraries are used to compile the sass source. 
 To install them use 
 
-```
+```shell
 $ fab test.mkenv
 ```
 
@@ -47,7 +47,7 @@ for me :-))
 
 To serve the test page, just run
 
-```
+```shell
 $ fab web.serve
 ```
 
@@ -56,10 +56,10 @@ your browser to `http://localhost:8000`.
 
 # Testing
 
-Tests are based on the (pytest)[http://docs.pytest.org/] testing framework for Python
+Tests are based on the [pytest](http://docs.pytest.org/) testing framework for Python
 and are run using
 
-```
+```shell
 $ fab test.all
 ```
 
