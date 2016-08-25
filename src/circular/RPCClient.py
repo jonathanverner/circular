@@ -1,7 +1,7 @@
 import json
 from browser import websocket
-from .async import Promise, async, Return
-from .logger import Logger
+from .utils.async import Promise, async, Return
+from .utils.logger import Logger
 
 logger = Logger(__name__)
 
