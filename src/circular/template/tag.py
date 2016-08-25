@@ -12,6 +12,37 @@ logger = Logger(__name__)
 import re
 
 class Template:
+    """
+        The template class is the basic class used for data-binding functionality.
+        Its constructor takes a :class:`DOMNode` element (e.g. ``doc['element_id']``) and
+        parses it and its children into an internal structure. One can than 
+        use the :func:`Template.bind_ctx` instance method to bind the template to 
+        a context (an instence of the :class:`Context` class) containing
+        the data. Once the data-binding is setup in this way any change to the context
+        will trigger an update of the document tree. 
+        
+        .. note:: 
+        
+           For performance reasons, the updates are only processed once every 100 msecs. 
+        
+        Assuming we have a template::
+            
+            <div id='app'>
+                Greetings from the {{ country }}
+            </div>
+            
+        We could write::
+        
+            from browser import document as doc
+            from circular.template import Template, Context
+            
+            ctx = Context()
+            ctx.country = 'Czech republic'
+            tpl = Template(doc['app'])
+            tpl.bind_ctx(ctx)              # The page shows "Greetings from the Czech republic"
+            
+            ctx.country = 'United Kingdom' # After a 100 msecs the page shows "Greetings from the United Kingdom"
+    """
     @classmethod
     def set_prefix(cls,prefix):
         TplNode.set_prefix(prefix)
