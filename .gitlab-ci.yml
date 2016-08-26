@@ -1,0 +1,12 @@
+before_script:
+  - apt-get update -qq && apt-get install pip fabric
+  - fab test.mkenv
+  - mkdir -p www/docs
+
+test:
+  script:
+    - fab test.all
+
+docs:
+  script:
+    - fab docs.build
