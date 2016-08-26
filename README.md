@@ -14,7 +14,8 @@ First install [Brython](http://www.brython.info) (note that currently Brython
 version 2.6 is needed) and then put the following in the `<head>` section of your html:
 
 ```html
-    <script src="lib/brython/www/src/brython_dist.js"></script>
+    <script type="text/javascript" src="https://cdn.rawgit.com/brython-dev/brython/3.2.6/www/src/brython_dist.js">
+    </script>
     <script>
         var onLoadHandler = function() {
             brython({'debug':1});
@@ -28,8 +29,7 @@ and then
     <body onload="onLoadHandler()">
 ```
 
-to load initialize it and run the python scripts
-(replace the `lib/brython` with the path where you have brython installed).
+to load initialize it and run the python scripts (shown later).
 
 ## Include the circular library
 
@@ -88,7 +88,7 @@ ctx.colours = [{"css":'red',"name":"Red"},{"css":'green',"name":"Green"},{"css":
 ```
 
 When you load the page it will take some time to initialize (load Brython),
-import the circular library. Eventually it should result in a page which looks
+and import the circular library. Eventually it should result in a page which looks
 something like
 
 ```html
@@ -107,10 +107,12 @@ something like
 
 # Hacking
 
+## Source code
+
 To get the source do:
 
 ```shell
-$ git clone git@github.com:jonathanverner/circular.git
+$ git clone https://github.com/jonathanverner/circular.git
 $ cd circular
 $ git submodule init
 $ git submodule update
@@ -156,7 +158,11 @@ $ fab web.serve
 (which really is just a shortcut for `python -m SimpleHTTPServer`) and point
 your browser to `http://localhost:8000`.
 
-# Testing
+## Issues
+
+The project uses the [Issue tracker](https://gitlab.com/Verner/circular/issues) at [GitLab](https://gitlab.com).
+
+## Testing
 
 Tests are based on the [pytest](http://docs.pytest.org/) testing framework for Python
 and are run using
