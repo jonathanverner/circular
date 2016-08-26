@@ -1,7 +1,109 @@
 # Circular
 
 Circular is a Python web-framework somewhat similar to [AngularJS 1](https://angularjs.org/). It is built upon the 
-[Brython](http://http://www.brython.info/) python-to-js compiler.
+[Brython](http://www.brython.info/) python-to-js compiler.
+
+# Using Circular
+
+Currently, the code is not yet ready for use. If you are adventurous, you can look
+at `web_src/index.html`. There are several steps you need to do:
+
+## Include Brython
+
+First install [Brython](http://www.brython.info) (note that currently Brython
+version 2.6 is needed) and then put the following in the `<head>` section of your html:
+
+```html
+    <script src="lib/brython/www/src/brython_dist.js"></script>
+    <script>
+        var onLoadHandler = function() {
+            brython({'debug':1});
+        };
+    </script>
+```
+
+and then
+
+```html
+    <body onload="onLoadHandler()">
+```
+
+to load initialize it and run the python scripts
+(replace the `lib/brython` with the path where you have brython installed).
+
+## Include the circular library
+
+Next add the following into your `head` section
+
+```html
+<link rel="pythonpath" href="lib" hreflang="py" />
+```
+
+replacing `lib` with the url of the place where the `circular` directory with the library
+is located.
+
+## Write a template
+
+For example, you could include the following in your body
+
+```html
+    <div id='test'>
+        Hello {{ name }}, how are you? Which is your favourite colour?
+        <ul>
+            <li tpl-for='c in colours' class='{{ c["css"] }}'> c["name"] </li>
+        </ul
+    </div>
+
+```
+
+## Initialize the library & parse the template
+
+Put a Python script tag into your head (eventually, you would put it into
+a separate file, but for simplicity we include it in the head)
+
+```html
+<script type="text/python">
+
+</script>
+```
+and put the following python code inside:
+
+```python
+from browser import document as doc
+
+from circular.template import Template, Context
+
+Template.set_prefix('tpl-')             # Sets the prefix used to identify template tags (e.g. tpl-for)
+tpl = Template(doc['test_tpl'])         # Parses the template contained in the <div id='test'> dom element
+ctx = Context()                         # Creates a new context (placeholder for data which can be used in the template)
+tpl.bind_ctx(ctx)                       # Binds the context to the template (this populates the template with the data)
+                                        # Initially the context does not contain any data so the rendered template will
+                                        # not contain much.
+ctx.name='Jonathan'                     # Set the name and colours variables
+ctx.colours = [{"css":'red',"name":"Red"},{"css":'green',"name":"Green"},{"css":'blue',"name":'Blue'}]
+
+                                        # After a while (approx. 100 msecs) the template should automatically update
+                                        # with the new values
+</script>
+```
+
+When you load the page it will take some time to initialize (load Brython),
+import the circular library. Eventually it should result in a page which looks
+something like
+
+```html
+    <div id='test'>
+        Hello Jonathan, how are you? Which is your favourite colour?
+        <ul>
+          <li class='red'>Red</li>
+          <li class='green'>Green</li>
+          <li class='blue'>Blue</li>
+        </ul>
+    </div>
+```
+
+
+
 
 # Hacking
 

@@ -13,7 +13,15 @@
 
 from browser import document as doc
 from circular.console import Console
+from circular.template import Template, Context
 cons = Console(doc["console"])
+Template.set_prefix('tpl-')
+tpl = Template(doc['test_tpl'])
+ctx = Context()
+tpl.bind_ctx(ctx)
+ctx.name='Jonathan'
+ctx.surname='Verner'
+ctx.colours = ['red','green','blue','brown']
 
 </script>
     
@@ -28,7 +36,7 @@ var onLoadHandler = function() {
 <!-- 3. Display the application -->
 <body onload="onLoadHandler()">
     
-    <div id='test' class="{{ ' '.join(classes) }}">
+    <div id='test_tpl' class="{{ ' '.join(classes) }}">
     Ahoj {{ name }} {{ surname }}!
         <ul>
             <li tpl-for="colour in colours if not colour == 'white'" style='color:{{ colour }};'>{{ colour }}</li>

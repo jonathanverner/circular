@@ -11,12 +11,6 @@ Contents:
 .. toctree::
    :maxdepth: 2
    
-Installation
-============
-
-
-Hacking
-=======
 .. include:: ../README.md
 
 .. automodule:: circular.template
