@@ -21,12 +21,12 @@ from .stylesheets import buildcss
 
 
 
-import jinja2
-from jinja2.filters import environmentfilter
-jinja_env=jinja2.Environment(extensions=['jinja2.ext.autoescape'])
-jinja_env.loader=jinja2.FileSystemLoader(["."])
-def render_tpl(tpl,context,dst):
-    stream(jinja_env.get_template(tpl).render(context)).save(dst)
+#import jinja2
+#from jinja2.filters import environmentfilter
+#jinja_env=jinja2.Environment(extensions=['jinja2.ext.autoescape'])
+#jinja_env.loader=jinja2.FileSystemLoader(["."])
+#def render_tpl(tpl,context,dst):
+    #stream(jinja_env.get_template(tpl).render(context)).save(dst)
 
 
 @task
