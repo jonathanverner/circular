@@ -98,7 +98,7 @@ class PrefixLookupDict(dict):
                 self[k] = v
 
     def _canonical(self,key):
-        k = key.upper().replace('-','')
+        k = key.upper().replace('-','').replace('_','')
         if k.startswith(self._prefix):
             return k[len(self._prefix):]
         else:
@@ -111,7 +111,7 @@ class PrefixLookupDict(dict):
             pass
 
     def set_prefix(self,prefix):
-        self._prefix = prefix.upper().replace('-','')
+        self._prefix = prefix.upper().replace('-','').replace('_','')
 
     def update(self, other):
         for (k,v) in other.items():
