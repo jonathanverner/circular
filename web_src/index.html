@@ -43,6 +43,7 @@ var onLoadHandler = function() {
         <ul>
             <li tpl-for="colour in colours if not colour == 'white'" style='color:{{ colour }};'>{{ colour }}</li>
         </ul>
+        <input type='textinput' tpl-model='name'>
     </div>
     
     <div class='w-console'>
