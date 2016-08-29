@@ -26,13 +26,16 @@ class Template:
            For performance reasons, the updates are only processed once every 100 msecs. 
         
         Assuming we have a template::
+
+        ```
             
             <div id='app'>
                 Greetings from the {{ country }}
             </div>
-            
+        ```
         We could write::
-        
+
+        ```
             from browser import document as doc
             from circular.template import Template, Context
             
@@ -42,9 +45,21 @@ class Template:
             tpl.bind_ctx(ctx)              # The page shows "Greetings from the Czech republic"
             
             ctx.country = 'United Kingdom' # After a 100 msecs the page shows "Greetings from the United Kingdom"
+        ```
     """
     @classmethod
     def set_prefix(cls,prefix):
+        """
+            Sets the prefix which should be prepended to tag names. E.g. if the prefix is set to `tpl-`
+            then the `for` plugin must be written as `tpl-for`:
+
+            ```
+
+                <li tpl-for="[1,2,3]" ...>...</li>
+
+            ```
+
+        """
         TplNode.set_prefix(prefix)
 
     def __init__(self,elem):
@@ -67,7 +82,8 @@ class Template:
                    returns a new element(s) on update
         """
         elems = self.root.update()
-        timer.clear_interval(self.update_timer)
+        if self.update_timer is not None:
+            timer.clear_interval(self.update_timer)
         self.update_timer = None
 
 class PrefixLookupDict(dict):
@@ -96,6 +112,10 @@ class PrefixLookupDict(dict):
 
     def set_prefix(self,prefix):
         self._prefix = prefix.upper().replace('-','')
+
+    def update(self, other):
+        for (k,v) in other.items():
+            self[k] = v
 
     def __delitem__(self, key):
         return super().__delitem__(self._canonical(key))
@@ -203,6 +223,9 @@ class TplNode(EventMixin):
     def update(self):
         return self.plugin.update()
 
+    def __repr__(self):
+        return "<TplNode "+repr(self.plugin)+" >"
+
 class TagPlugin(EventMixin):
     def __init__(self,tpl_element):
         """
@@ -272,6 +295,7 @@ class TextPlugin(TagPlugin):
             else:
                 self._dirty_self = False
                 self._dirty_subtree = False
+        self.element = self._orig_clone
 
     def bind_ctx(self,ctx):
         self.element = self._orig_clone.clone()
@@ -294,13 +318,12 @@ class TextPlugin(TagPlugin):
         else:
             return "<TextPlugin '"+self.element.text.replace("\n","\\n")+"'>"
 
-
 class GenericTagPlugin(TagPlugin):
     def _fence(self,node):
         try:
             return html.COMMENT(str(node))
         except:
-            return html.SPAN(str(node))
+            return html.SPAN()
             return document.__class__(document.createComment(str(node)))
 
     def __init__(self,tpl_element):
@@ -409,6 +432,39 @@ class InterpolatedAttrPlugin(TagPlugin):
             return "<Attr: "+self.name +"='"+self.value+"' >"
 
 class For(TagPlugin):
+    """
+        The template plugin `For` is used to generate a list of DOM elements.
+        When a dom-element has the `for` attribute set it should be of the form
+        ```
+            var in list
+        ```
+        or
+        ```
+            var in list if condition
+        ```
+        where `var` is a variable name, `list` is an expression evaluating to
+        a list and `condition` is a boolean expression which can contain the
+        variable `var`. When a template element with a `for` attribute is
+        bound to a context, the `list` expression is evaluated and filtered
+        to a list which contains only elements satisfying the optional `condition`.
+        Then for each element in this final list a new DOM-element is created
+        and bound to the context containing a single variable `var` with the
+        element as its value. For example, given the context
+        ```
+           ctx.l = [1,2,3,4]
+        ```
+        the template element
+        ```
+           <li for="num in l"> {{ num }} </li>
+        ```
+        when bound to the context would create the following four elements:
+        ```
+            <li>1</li>
+            <li>2</li>
+            <li>3</li>
+            <li>4</li>
+        ```
+    """
     SPEC_RE = re.compile('^\s*(?P<loop_var>[^ ]*)\s*in\s*(?P<sequence_exp>.*)$',re.IGNORECASE)
     COND_RE = re.compile('\s*if\s(?P<condition>.*)$',re.IGNORECASE)
 
@@ -467,7 +523,6 @@ class For(TagPlugin):
                 logger.exception(ex)
                 logger.warn("Exception",ex,"when evaluating condition",self._cond,"with context",c)
                 self._ex=ex
-                #raise ex
         super().bind_ctx(ctx)
         return ret
 
@@ -487,4 +542,10 @@ class For(TagPlugin):
                     ret.append(elem)
             if have_new:
                 return ret
+    def __repr__(self):
+        ret= "<For:"+self._var+" in "+str(self._exp)
+        if self._cond is not None:
+            ret += " if "+self._cond
+        ret += ">"
+        return ret
 TplNode.register_plugin(For)
