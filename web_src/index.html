@@ -22,8 +22,11 @@ tpl.bind_ctx(ctx)
 ctx.name='Jonathan'
 ctx.surname='Verner'
 ctx.colours = ['red','green','blue','brown']
+ctx.colour='olive'
 cons.add_to_ns('ctx',ctx)
 cons.add_to_ns('tpl',tpl)
+doc['add'].bind('click',lambda x:ctx.colours.append(ctx.colour))
+doc['pop'].bind('click',lambda x:ctx.colours.pop())
 
 </script>
     
@@ -44,6 +47,10 @@ var onLoadHandler = function() {
             <li tpl-for="colour in colours if not colour == 'white'" style='color:{{ colour }};'>{{ colour }}</li>
         </ul>
         <input type='textinput' tpl-model='name'>
+        <input type='textinput' tpl-model='colour'>
+        <input type='submit' id='add' value='Add'>
+        <input type='submit' id='pop' value='Pop'>
+
     </div>
     
     <div class='w-console'>

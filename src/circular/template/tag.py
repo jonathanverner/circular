@@ -75,7 +75,7 @@ class Template:
 
     def _start_timer(self,event):
         if self.update_timer is None:
-            self.update_timer = timer.set_interval(self.update,100)
+            self.update_timer = timer.set_interval(self.update,50)
 
     def update(self):
         """ FIXME: We need handle the case when the root node
