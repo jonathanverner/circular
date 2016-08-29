@@ -264,8 +264,6 @@ class TagPlugin(EventMixin):
 
         would apply to template elements of the form `<foo ...>` or `<div foo="..." ...>`.
     """
-    PRIORITY = 0
-    NAME = 'Tag'
 
     def __init__(self,tpl_element):
         """
