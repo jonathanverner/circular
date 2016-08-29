@@ -99,7 +99,7 @@ class ExpObserver(EventMixin):
                      be called on interpolated strings.
         """
         assert self._exp_type == ET_EXPRESSION
-        self.asts[0].evaluate_assignment(self,value)
+        self.asts[0].evaluate_assignment(self.ctx,value)
         self._val = value
         self._have_val = True
 
