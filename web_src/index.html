@@ -22,6 +22,8 @@ tpl.bind_ctx(ctx)
 ctx.name='Jonathan'
 ctx.surname='Verner'
 ctx.colours = ['red','green','blue','brown']
+cons.add_to_ns('ctx',ctx)
+cons.add_to_ns('tpl',tpl)
 
 </script>
     
@@ -43,7 +45,7 @@ var onLoadHandler = function() {
         </ul>
     </div>
     
-    <div>
+    <div class='w-console'>
         <textarea id='console' spellcheck="false"></textarea>
     </div>
 

@@ -1,3 +1,4 @@
+Travis CI: [![Build Status](https://travis-ci.org/jonathanverner/circular.svg?branch=master)](https://travis-ci.org/jonathanverner/circular)
 # Circular
 
 Circular is a Python web-framework somewhat similar to [AngularJS 1](https://angularjs.org/). It is built upon the 
@@ -173,3 +174,8 @@ $ fab test.all
 
 (or `fab test.single:template/test_tag.py` for a single test file; this drops you into a
 pdb shell in case of failure)
+
+License
+-------
+
+The project is licensed under the MIT license.

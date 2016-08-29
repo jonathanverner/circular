@@ -84,6 +84,9 @@ POSSIBILITY OF SUCH DAMAGE.
         self._elem.focus()
         self.cursorToEnd()
 
+    def add_to_ns(self,key,value):
+        self.editor_ns[key] = value
+
     def _redirectOut(self):
         if self._redirected:
             sys.__console__ = False
