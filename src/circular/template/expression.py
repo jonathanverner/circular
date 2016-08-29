@@ -317,6 +317,15 @@ class ExpNode(EventMixin):
         """ Evaluates the node looking up identifiers in @context."""
         pass
 
+    def evaluate_assignment(self,context,value):
+        """
+            Computes the expression and assigns value to the result.
+            E.g. if the expression is `ob[1]` and `ctx` is
+            `{ob:[1,2,3,4]}` then `evaluate_assignment(ctx,20)`
+            executes `ctx.ob[1]=20`.
+        """
+        pass
+
     def watch(self,ctx):
         """
             Watches ctx for changes which have effect on the expression value
@@ -347,6 +356,9 @@ class ConstNode(ExpNode):
     def evaluate(self,context,self_obj = None):
         return self._last_val
 
+    def evaluate_assignment(self, context, value):
+        raise Exception("Cannot assign value to constants" )
+    
     def clone(self):
         # Const Nodes can't change, so clone's can be identical
         return self
@@ -407,6 +419,12 @@ class IdentNode(ExpNode):
             except KeyError:
                 self._last_val = self.BUILTINS[self._ident]
         return self._last_val
+
+    def evaluate_assignment(self, context, value):
+        if self._const:
+            raise Exception("Cannot assign to the constant"+self._last_val)
+        else:
+            setattr(context,self._ident,value)
 
     def _change_handler(self,event):
         if event.data['observed_obj'] == self._watched_ctx:
@@ -483,6 +501,9 @@ class FuncArgsNode(MultiChildNode):
         self._last_val = args,kwargs
         return self._last_val
 
+    def evaluate_assignment(self, context, value):
+        raise Exception("Assigning to a function result has no effect!")
+
     def watch(self, context):
         super().watch(context)
         for (k,v) in self._kwargs.items():
@@ -507,6 +528,10 @@ class ListSliceNode(MultiChildNode):
             return slice(start,end,step)
         else:
             return start
+
+    def evaluate_assignment(self,context,value):
+        raise Exception("Assigning to a list slice does not make sense.")
+
     def __repr__(self):
         start,end,step=self._children
         if self._slice:
@@ -544,6 +569,10 @@ class AttrAccessNode(ExpNode):
         self._obj_val = self._obj.evaluate(context)
         self._last_val = getattr(self._obj_val,self._attr.name())
         return self._last_val
+
+    def evaluate_assignment(self, context, value):
+        self._obj_val = self._obj.evaluate(context)
+        setattr(self._obj_val,self._attr.name(),value)
 
     def watch(self,context):
         self.stop_forwarding(only_event='change')
@@ -597,6 +626,9 @@ class ListComprNode(ExpNode):
         self._last_val = ret
         return self._last_val
 
+    def evaluate_assignment(self):
+        raise Exception("Assigning to a list comprehension does not make sense.")
+
     def watch(self,context):
         self._lst.watch(context)
         self._cond.watch(context)
@@ -616,6 +648,9 @@ class ListNode(MultiChildNode):
 
     def clone(self):
         return ListNode(super().clone())
+
+    def evaluate_assignment(self, context, value):
+        raise Exception("Assigning to a list constant has no effect!")
 
     def __repr__(self):
         return repr(self._children)
@@ -676,6 +711,13 @@ class OpNode(ExpNode):
             r = self._rarg.evaluate(context)
             self._last_val = self._op(l,r)
         return self._last_val
+
+    def evaluate_assignment(self, context, value):
+        if self._opstr != '[]':
+            raise Exception("Assigning to "+repr(self)+" does not make sense.")
+        lst = self._larg.evaluate(context)
+        index = self._rarg.evaluate(context)
+        lst[index] = value
 
     def watch(self,context):
         self.stop_forwarding(only_event='change')

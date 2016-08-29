@@ -84,6 +84,25 @@ class ExpObserver(EventMixin):
     def value(self):
         return self._val
 
+    def evaluate_assignment(self,value):
+        """
+            Evaluates the watched expression and assigns value to the result
+            using the method :func:`evaluate_assignment` of the expression object.
+
+            WARNING: After this method is called it is assumed that the watched expression
+                     value will be `value`. If that is not the case, you need to call
+                     :func:`evaluate` after calling this method.
+
+            WARNING: This method should only be called if the watched expression is an
+                     plain expression to which it makes sense to assign a value
+                     (e.g. not a constant or arithmetical expression). It must also not
+                     be called on interpolated strings.
+        """
+        assert self._exp_type == ET_EXPRESSION
+        self.asts[0].evaluate_assignment(self,value)
+        self._val = value
+        self._have_val = True
+
     def evaluate(self):
         if self._exp_type == ET_EXPRESSION:
             try:

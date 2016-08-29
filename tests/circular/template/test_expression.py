@@ -1,4 +1,5 @@
 from unittest.mock import patch
+from pytest import raises
 import src.circular.template.expression as exp
 from src.circular.template.context import Context
 
@@ -331,3 +332,57 @@ def test_parse():
         expr = '[(1+2*a[1+3] - 10) for a in [[2,1,2,3,4,5],[1,2],[2,2,2,2,2,2,2]] if a[0] % 2 == 0]'
         ast = exp.parse(expr)
         assert ast.evaluate(ctx) == [-1,-5]
+
+def test_eval_assignment():
+    ctx = Context()
+
+    # Do not allow assigning to non-trivial expressions
+    ast = exp.parse('(1+1*x)*9')
+    with raises(Exception):
+        ast.evaluate_assignment(ctx,10)
+
+    # Do not allow assigning to built-in constants
+    ast = exp.parse('True')
+    with raises(Exception):
+        ast.evaluate_assignment(ctx,10)
+
+    # Do not allow assigning to function calls
+    ast = exp.parse('f(1)')
+    with raises(Exception):
+        ast.evaluate_assignment(ctx,10)
+
+    # Do not allow assigning to constant lists
+    ast = exp.parse("[1,2,3,4]")
+    with raises(Exception):
+        ast.evaluate_assignment(ctx,10)
+
+    # Do not allow assigning to constants
+    ast = exp.parse("'ahoj'")
+    with raises(Exception):
+        ast.evaluate_assignment(ctx,10)
+
+    # Allow assigning to non-existing variables
+    ast = exp.parse('x')
+    ast.evaluate_assignment(ctx,10)
+    assert ctx.x == 10
+
+    # Allow assigning to existing variables
+    ast.evaluate_assignment(ctx,20)
+    assert ctx.x == 20
+
+    # Allow assigning to list elements
+    ctx.lst = [1,2,3]
+    ctx.x = 0
+    ast = exp.parse("lst[x]")
+    ast.evaluate_assignment(ctx,20)
+    assert ctx.lst[0] == 20
+
+    # Allow assigning to non-existing object attributes
+    ctx.obj = Context()
+    ast = exp.parse('obj.test')
+    ast.evaluate_assignment(ctx,30)
+    assert ctx.obj.test == 30
+
+    # Allow assigning to existing object attributes
+    ast.evaluate_assignment(ctx,40)
+    assert ctx.obj.test == 40
