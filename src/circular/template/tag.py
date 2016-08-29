@@ -144,7 +144,8 @@ class TplNode(EventMixin):
         meta = {
             'class':plugin_class,
             'args':PrefixLookupDict(list(plugin_class.__init__.__code__.co_varnames)),
-            'name': plugin_name
+            'name': plugin_name,
+            'priority':getattr(plugin_class,'PRIORITY',0)
         }
         meta['args'].remove('self')
         meta['args'].remove('tpl_element')
@@ -153,16 +154,22 @@ class TplNode(EventMixin):
     def __hash__(self):
         return self._hash
 
+    @classmethod
+    def _build_kwargs(cls,element,plugin):
+        ld = PrefixLookupDict(plugin['args'])
+        kwargs = {}
+        for attr in element.attributes:
+            if attr.name in ld:
+                kwargs[ld[attr.name]]=attr.value
+                element.removeAttribute(attr.name)
+        return kwargs
+
     def __init__(self,tpl_element):
         super().__init__()
         self._hash = TplNode._HASH_SEQ
         TplNode._HASH_SEQ += 1
 
         self.plugin = None           # The template plugin associated with the node
-
-        # Initialize the plugins
-        args = [tpl_element]
-        kwargs = {}
 
         if isinstance(tpl_element,TplNode):
             self.plugin = tpl_element.plugin.clone()
@@ -171,47 +178,47 @@ class TplNode(EventMixin):
 
         if tpl_element.nodeName == '#text':
             # Interpolated text node plugin
-            self.plugin = TextPlugin(*args,**kwargs)
+            self.plugin = TextPlugin(tpl_element)
         else:
-            if tpl_element.nodeName in self.PLUGINS:
-                # Get list of attributes which are consumed by tag-plugin
-                tag_params = PrefixLookupDict(self.PLUGINS[tpl_element.nodeName]['args'])
-            else:
-                tag_params = []
-            for attr in tpl_element.attributes:
-                if attr.name in tag_params:
-                    # Skip attributes consumed by tag-plugin
-                    continue
-                if attr.name in self.PLUGINS:
-                    # If attribute corresponds to a plugin, initialize it
-                    meta = self.PLUGINS[attr.name]
-                    ld = PrefixLookupDict(meta['args'])
-                    tpl_element.removeAttribute(attr.name)
-                    for pattr in tpl_element.attributes:
-                        if pattr.name in ld:
-                            kwargs[ld[pattr.name]]=pattr.value
-                            tpl_element.removeAttribute(pattr.name)
-                    args.append(attr.value)
-                    self.plugin = meta['class'](*args,**kwargs)
-                    self.plugin.bind('change',self,'change')
-                    return
-                else:
-                    # Initialize the interpolated attribute plugin
-                    kwargs['name'] = attr.name
-                    kwargs['value'] = attr.value
-                    tpl_element.removeAttribute(attr.name)
-                    self.plugin = InterpolatedAttrPlugin(*args,**kwargs)
-                    self.plugin.bind('change',self,'change')
-                    return
-
-            # No more attributes to process, initialize the tag-plugin, if present
-            if tpl_element.nodeName in self.PLUGINS:
+            if not hasattr(tpl_element,'_plugins'):
+                # This is the first pass over tpl_element,
+                # we need to find out what the plugins are
+                # and remove their params from the element
+                # and save them for later
+                plugin_metas = []
                 for attr in tpl_element.attributes:
-                    kwargs[tag_params[attr.name]]=attr.value
-                    tpl_element.removeAttribute(attr.name)
-                self.plugin = self.PLUGINS[tpl_element.nodeName]['class'](*args,**kwargs)
-            else:
-                self.plugin = GenericTagPlugin(*args,**kwargs)
+                    if attr.name in self.PLUGINS:
+                        plugin_metas.append((attr.value,self.PLUGINS[attr.name]))
+                        tpl_element.removeAttribute(attr.name)
+
+                # Order the plugins by priority
+                plugin_metas.sort(key = lambda x:x[1]['priority'])
+                plugins = []
+                for (arg,p) in plugin_metas:
+                    plugins.append((p,[arg],self._build_kwargs(tpl_element,p)))
+
+                if tpl_element.nodeName in self.PLUGINS:
+                    tplug = self.PLUGINS[tpl_element.nodeName]
+                    plugins.append(tplug, [], self._build_kwargs(tpl_element,tplug))
+                set_meta = True
+                setattr(tpl_element,'_plugins',plugins)
+
+            plugins = getattr(tpl_element,'_plugins')
+
+            # Now we initialize the first plugin, if any
+            if len(plugins) > 0:
+                plug_meta,args,kwargs = plugins.pop()
+                self.plugin = p['class'](tpl_element,*args,**kwargs)
+                self.plugin.bind('change',self,'change')
+                return
+
+            # If there are any attributes left, we initialize the InterpolatedAttrsPlugin
+            if len(tpl_element.attributes) > 0:
+                self.plugin = InterpolatedAttrsPlugin(tpl_element)
+                self.plugin.bind('change',self,'change')
+                return
+
+            self.plugin = GenericTagPlugin(tpl_element)
         self.plugin.bind('change',self,'change')
 
     def clone(self):
@@ -227,6 +234,39 @@ class TplNode(EventMixin):
         return "<TplNode "+repr(self.plugin)+" >"
 
 class TagPlugin(EventMixin):
+    """
+        Plugins extending this class can set the `PRIORITY` class attribute to a non-zero
+        number. The higher the number, the earlier they will be initialized. For example
+        the `For` plugin sets the priority to 1000 (very high) because it wants to be
+        initialized before the other plugins,e.g. if the template is
+        ```
+        <li tpl-for='c in colours' style='{{ c.css }}'>
+        ```
+        then the `tpl-for` plugin needs to be initialized before the plugin handling
+        the interpolation on the style attribute because the context `c` is created
+        by the tpl-for plugin. In general the order of initialization is as follows:
+
+          1. plugins determined by attributes, ordered according to their PRIORITY
+          2. the plugin handling interpolated attributes
+          3. the plugin corresponding to the tag name
+
+        Plugins extending this class can set the `NAME` class attribute. If set, it
+        will be used to determine if the plugin applies to a given element. If it is
+        not set, the class name will be used instead. For example the following
+        plugin definition
+
+        ```
+        class My(TagPlugin):
+            NAME='Foo'
+            ...
+
+        ```
+
+        would apply to template elements of the form `<foo ...>` or `<div foo="..." ...>`.
+    """
+    PRIORITY = 0
+    NAME = 'Tag'
+
     def __init__(self,tpl_element):
         """
             @tpl_element is either a DOMNode or an instance of TagPlugin.
@@ -383,53 +423,66 @@ class GenericTagPlugin(TagPlugin):
     def __repr__(self):
         return "<Generic: "+self.element.tagName+">"
 
-class InterpolatedAttrPlugin(TagPlugin):
-    def __init__(self,tpl_element,name=None,value=None):
+class InterpolatedAttrsPlugin(TagPlugin):
+    def __init__(self,tpl_element):
         super().__init__(tpl_element)
         self.element = None
-        if isinstance(tpl_element,InterpolatedAttrPlugin):
-            self.name = tpl_element.name
-            if tpl_element.observer is not None:
-                self.observer = tpl_element.observer.clone()
-                self.observer.bind('change',self._self_change_chandler)
-            else:
-                self.observer = None
+        self.observers = {}
+        self.names = []
+        if isinstance(tpl_element,InterpolatedAttrsPlugin):
+            for (name,obs) in tpl_element.observers.items():
+                if isinstance(obs,ExpObserver):
+                    o = obs.clone()
+                    self.observers[name] = o
+                    o.bind('change',self._self_change_chandler)
+                else:
+                    self.observers[name] = obs
             self.child = tpl_element.child.clone()
         else:
-            self.name = name
-            self.observer = None
-            self.element = None
-            if '{{' in value:
-                self.observer = ExpObserver(value,ET_INTERPOLATED_STRING)
-                self.observer.bind('change',self._self_change_chandler)
-            else:
-                self.value = value
+            for attr in tpl_element.attributes:
+                if '{{' in attr.value:
+                    obs = ExpObserver(attr.value,ET_INTERPOLATED_STRING)
+                    obs.bind('change',self._self_change_chandler)
+                else:
+                    obs = attr.value
+                self.observers[attr.name] = obs
+                tpl_element.removeAttribute(attr.name)
             self.child = TplNode(tpl_element)
         self.child.bind('change',self._subtree_change_handler)
 
     def bind_ctx(self, ctx):
         self.element = self.child.bind_ctx(ctx)
-        if self.observer:
-            self.observer.context = ctx
-            self.element.setAttribute(self.name,self.observer.value)
-        else:
-            self.element.setAttribute(self.name,self.value)
+        for (name,obs) in self.observers.items():
+            if isinstance(obs,ExpObserver):
+                obs.context = ctx
+                self.element.setAttribute(name,obs.value)
+            else:
+                self.element.setAttribute(name,obs)
         super().bind_ctx(ctx)
         return self.element
 
     def update(self):
         if self._dirty_self and self._bound:
-            self.element.setAttribute(self.name,self.observer.value)
+            for (name,obs) in self.observers.items():
+                if isinstance(obs,ExpObserver):
+                    self.element.setAttribute(name,obs.value)
+                else:
+                    self.element.setAttribute(name,obs)
             self._dirty_self = False
         if self._dirty_subtree:
             self._dirty_subtree = False
             return self.child.update()
 
     def __repr__(self):
-        if self.observer is not None:
-            return "<Attr: "+self.name +"='"+self.value+"' ("+self.observer._exp_src+")>"
-        else:
-            return "<Attr: "+self.name +"='"+self.value+"' >"
+        ret = "<Attr: ";
+        attrs = []
+        for (name,obs) in self.observers.items():
+            if isinstance(obs,ExpObserver):
+                attrs.append(name+"="+obs.value+"("+obs._exp_src+")")
+            else:
+                attrs.append(name+"="+obs)
+        return "<Attrs: "+" ".join(attrs)+" >"
+
 
 class For(TagPlugin):
     """
@@ -467,6 +520,7 @@ class For(TagPlugin):
     """
     SPEC_RE = re.compile('^\s*(?P<loop_var>[^ ]*)\s*in\s*(?P<sequence_exp>.*)$',re.IGNORECASE)
     COND_RE = re.compile('\s*if\s(?P<condition>.*)$',re.IGNORECASE)
+    PRIORITY = 1000 # The for plugin should be processed before all the others
 
     def __init__(self,tpl_element,loop_spec=None):
         super().__init__(tpl_element)

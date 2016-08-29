@@ -5,7 +5,7 @@ from tests.brython.browser import document
 from src.circular.utils.events import EventMixin
 
 from src.circular.template.context import Context
-from src.circular.template.tag import Template, TplNode, TagPlugin, TextPlugin, GenericTagPlugin, InterpolatedAttrPlugin, For, PrefixLookupDict
+from src.circular.template.tag import Template, TplNode, TagPlugin, TextPlugin, GenericTagPlugin, InterpolatedAttrsPlugin, For, PrefixLookupDict
 from src.circular.template.expobserver import ExpObserver
 from src.circular.template.expression import ET_INTERPOLATED_STRING, parse
 
@@ -133,7 +133,7 @@ def test_generic_plugin():
     assert plug.update() is None
     assert text_elem.text == "Jonathan"
 
-def test_interpolated_attr_plugin():
+def test_interpolated_attrs_plugin():
     text_elem = MockElement('#text')
     text_elem.text = "{{ name }}"
     t2_elem = MockElement('#text')
@@ -142,12 +142,13 @@ def test_interpolated_attr_plugin():
     div_elem <= text_elem
     div_elem <= t2_elem
 
-    plug = InterpolatedAttrPlugin(div_elem,"id","test")
+    plug = InterpolatedAttrsPlugin(div_elem)
     ctx = Context({})
     elem = plug.bind_ctx(ctx)
     assert elem.attributes.id == "test"
 
-    plug = InterpolatedAttrPlugin(div_elem,"id","{{ id }}")
+    div_elem.setAttribute('id',"{{ id }}")
+    plug = InterpolatedAttrsPlugin(div_elem)
     ctx = Context({})
     elem = plug.bind_ctx(ctx)
     text_elem = elem.children[0]
@@ -181,6 +182,17 @@ def test_interpolated_attr_plugin():
     assert plug.update() is None
     assert elem.attributes.id == "test_id"
 
+    div_elem.attributes.extend([MockAttr('id','{{ id }}'),MockAttr('style','{{ css }}'),MockAttr('name','???')])
+    plug = TplNode(div_elem)
+    ctx = Context({})
+    elem = plug.bind_ctx(ctx)
+    assert elem.attributes.id == ""
+    assert elem.attributes.style == ""
+    assert elem.attributes.name == "???"
+    ctx.css = "border:1px;"
+    assert plug.update() is None
+    assert elem.attributes.style == "border:1px;"
+
 
 def filter_comments(lst):
     return [ e for e in lst if e.tagName != 'comment' ]
@@ -211,6 +223,7 @@ def test_for_plugin():
     assert plug.update() is None
     assert filter_comments(nocomment[0].children)[0].text == "Reddish"
 
+def test_nested_for():
     # Test nested loops
     doc = MockElement('div')
     div_elem = MockElement('div')
@@ -229,9 +242,6 @@ def test_for_plugin():
     nocomment_children = filter_comments(plug.bind_ctx(ctx).children)
     assert len(nocomment_children) == 2
     assert len(filter_comments(nocomment_children[0].children)) == 2
-
-
-
 
 
 
