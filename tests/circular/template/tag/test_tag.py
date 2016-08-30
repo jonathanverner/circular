@@ -5,7 +5,9 @@ from tests.brython.browser import document
 from src.circular.utils.events import EventMixin
 
 from src.circular.template.context import Context
-from src.circular.template.tag import Template, TplNode, TagPlugin, TextPlugin, GenericTagPlugin, InterpolatedAttrsPlugin, For, PrefixLookupDict
+from src.circular.template import Template, TplNode, TagPlugin
+from src.circular.template.tpl import PrefixLookupDict
+from src.circular.template.tags import TextPlugin, GenericTagPlugin, InterpolatedAttrsPlugin, For
 from src.circular.template.expobserver import ExpObserver
 from src.circular.template.expression import ET_INTERPOLATED_STRING, parse
 
