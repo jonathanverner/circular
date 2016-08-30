@@ -1,13 +1,16 @@
 try:
-    from ..expobserver import ExpObserver
+    from ..expression import parse
     from ..tpl import TplNode
 except:
-    from circular.template.expobserver import ExpObserver
+    from circular.template.expression import parse
     from circular.template.tpl import TplNode
 
 from .tag import TagPlugin
 
-from circular.utils.logger import Logger
+try:
+    from ...utils.logger import Logger
+except:
+    from circular.utils.logger import Logger
 logger = Logger(__name__)
 
 class Model(TagPlugin):
@@ -34,10 +37,11 @@ class Model(TagPlugin):
         super().__init__(tpl_element)
         self._model_change_timer = None
         self._input_change_timer = None
+        self._ctx = None
         if isinstance(tpl_element,Model):
             self._update_event = tpl_element._update_event
             self._update_interval = tpl_element._update_interval
-            self._model_observer = tpl_element.model.clone()
+            self._model = tpl_element.model.clone()
             self.child = tpl_element.child.clone()
         else:
             self._update_event = update_event
@@ -45,18 +49,19 @@ class Model(TagPlugin):
                 self._update_interval = int(update_interval)
             else:
                 self._update_interval = None
-            self._model_observer = ExpObserver(model)
+            self._model = parse(model)
             self.child = TplNode(tpl_element)
+            assert self._model.is_assignable(), "The expression "+model+" does not support assignment"
         if self._update_interval:
-            self._model_observer.bind('change',self._defer_model_change)
+            self._model.bind('change',self._defer_model_change)
         else:
-            self._model_observer.bind('change',self._model_change)
+            self._model.bind('change',self._model_change)
         self.child.bind('change',self._subtree_change_handler)
-        logger.debug("Initialized model plugin")
 
     def bind_ctx(self,ctx):
         self.element = self.child.bind_ctx(ctx)
-        self._model_observer.context = ctx
+        self._model.bind(ctx)
+        self.element.value = self._model.value
         if self._update_interval:
             self.element.bind(self._update_event,self._defer_input_change)
         else:
@@ -73,22 +78,28 @@ class Model(TagPlugin):
             self._input_change_timer = timer.set_interval(self._input_change,self._update_interval)
 
     def _model_change(self,event=None):
-        if self.element and self._model_observer.have_value() and self.element.value != self._model_observer.value:
-            self.element.value = self._model_observer.value
-            if self._model_change_timer:
-                timer.clear_interval(self._model_change_timer)
-                self._model_change_timer = None
+        if self._model_change_timer:
+            timer.clear_interval(self._model_change_timer)
+            self._model_change_timer = None
+        if self.element:
+            if 'value' in event:
+                new_val = event['value']
+            else:
+                new_val = self._model.value
+            if not self.element.value == new_val:
+                self.element.value = new_val
 
     def _input_change(self,event=None):
-        if self.element and (not self._model_observer.have_value() or self.element.value != self._model_observer.value):
-            self._model_observer.evaluate_assignment(self.element.value)
-            if self._input_change_timer:
-                timer.clear_interval(self._input_change_timer)
-                self._input_change_timer = None
+        if self.element:
+            if self._model.value != self.element.value:
+                if self._input_change_timer:
+                    timer.clear_interval(self._input_change_timer)
+                    self._input_change_timer = None
+                self._model.value = self.element.value
 
     def __repr__(self):
-        if self._model_observer.have_value():
-            return "<ModelPlugin "+self._model_observer._exp_src+" ("+self._model_observer.value+")>"
+        if self._model.have_value():
+            return "<ModelPlugin "+self._model._exp_src+" ("+self._model.value+")>"
         else:
-            return "<ModelPlugin "+self._model_observer._exp_src+" (undefined)>"
+            return "<ModelPlugin "+self._model._exp_src+" (undefined)>"
 TplNode.register_plugin(Model)

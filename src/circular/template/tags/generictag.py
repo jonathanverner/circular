@@ -1,12 +1,8 @@
 from browser import html
 
 try:
-    from ..expobserver import ExpObserver
-    from ..expression import ET_INTERPOLATED_STRING
     from ..tpl import TplNode
 except:
-    from circular.template.expobserver import ExpObserver
-    from circular.template.expression import ET_INTERPOLATED_STRING
     from circular.template.tpl import TplNode
 
 from .tag import TagPlugin
@@ -67,7 +63,6 @@ class GenericTagPlugin(TagPlugin):
     def replace(self,ch,elems):
         fence = self.child_elements[ch][-1]
         for old_el in self.child_elements[ch][:-1]:
-            logger.debug("Deleting",old_el)
             old_el.__del__()
         if type(elems) == list:
             for el in elems:

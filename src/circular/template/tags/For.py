@@ -3,12 +3,10 @@ import re
 try:
     from ..tpl import TplNode
     from ..expression import parse
-    from ..expobserver import ExpObserver
     from ..context import Context
 except:
     from circular.template.tpl import TplNode
     from circular.template.expression import parse
-    from circular.template.expobserver import ExpObserver
     from circular.template.context import Context
 
 
@@ -78,7 +76,7 @@ class For(TagPlugin):
                 self._cond = None
             self.children = []
             self.child_template = TplNode(tpl_element)
-        self._exp.bind('exp_change',self._self_change_chandler)
+        self._exp.bind('change',self._self_change_chandler)
 
     def _clear(self):
         for (ch,elem) in self.children:
@@ -88,9 +86,9 @@ class For(TagPlugin):
     def bind_ctx(self, ctx):
         self._ctx = ctx
         self._clear()
-        self._exp.watch(self._ctx)
+        self._exp.bind(self._ctx)
         try:
-            lst = self._exp.evaluate(self._ctx)
+            lst = self._exp.eval()
         except Exception as ex:
             logger.exception(ex)
             logger.warn("Exception",ex,"when computing list",self._exp,"with context",self._ctx)
@@ -100,7 +98,7 @@ class For(TagPlugin):
         for item in lst:
             c=Context({self._var:item})
             try:
-                if self._cond is None or self._cond.evaluate(c):
+                if self._cond is None or self._cond.eval(c):
                     clone = self.child_template.clone()
                     elem = clone.bind_ctx(c)
                     clone.bind('change',self._subtree_change_handler)
@@ -129,10 +127,12 @@ class For(TagPlugin):
                     ret.append(elem)
             if have_new:
                 return ret
+
     def __repr__(self):
         ret= "<For:"+self._var+" in "+str(self._exp)
         if self._cond is not None:
             ret += " if "+self._cond
         ret += ">"
         return ret
+
 TplNode.register_plugin(For)

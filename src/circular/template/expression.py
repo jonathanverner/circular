@@ -325,50 +325,92 @@ class ExpNode(EventMixin):
         self._dirty = True
 
 
-    def evaluate(self,context,use_cache=False):
+    def eval(self,force_cache_refresh=False):
         """
-            Evaluates the node looking up identifiers in @context.
+            Evaluates the node looking up identifiers the context to which it was bound
+            by the :func:`bind` method and returns the value.
 
-            Note: If the expression watches a context, you can
-            pass the parameter `use_cache=True` which returns
-            a cached value if there were no changes to the context
-            affecting the expression.
+            Note: If the function is passed `force_cache_refresh=False` the method does nothing if a known good
+            cached value exists. Otherwise the value is recomputed even if a known good value is cached.
+
+            Note: The method will update the cached value and the cache status to good.
+
+            Note: The method may throw (e.g. KeyError, AttrAcessError, ...)
         """
-        if not self._dirty and use_cache:
-            return self._cached_val
-        self._dirty = False
+        pass
+
+    def evalctx(self,context):
+        """
+            Evaluates the node looking up identifiers the context `context`. This method
+            ignores any context previously set by the :func:`bind` method and also does
+            not update the cache or cache status.
+
+            Note: The method may throw (e.g. KeyError, AttrAcessError, ...)
+        """
         return None
 
-    def evaluate_assignment(self,context,value):
+
+    @property
+    def value(self):
+        """
+            The value of the expression.
+
+            Note: Until a context is bound to the expression, the value returns None.
+            Note: Always returns the cached value. If you want to refresh the cache,
+            call evaluate with `force_cache_refresh=True`.
+
+            Note: The function wraps the eval code in a try-catch block so it does
+            not throw.
+        """
+        if self._dirty:
+            try:
+                self._cached_val = eval()
+            except:
+                pass
+        return self._cached_val
+
+    @value.setter
+    def setvalue(self,val):
         """
             Computes the expression and assigns value to the result.
             E.g. if the expression is `ob[1]` and `ctx` is
-            `{ob:[1,2,3,4]}` then `evaluate_assignment(ctx,20)`
+            `{ob:[1,2,3,4]}` then `_assign(ctx,20)`
             executes `ctx.ob[1]=20`.
 
             Note: The methods in general assume that the assignment
             succeeds, i.e. that a next call to evaluate should return
-            value. In particular, the evaluate_assignment caches the
+            value. In particular, the _assign caches the
             value `value` without actually computing the value of the
             expression.
         """
+        self._assign(val)
+        self._cached_val = val
+        if self._dirty:
+            self._dirty = False
+        else:
+            self.emit('change',{'value':self._cached_val})
+
+    def _assign(self,val):
         raise Exception("Assigning to "+str(self)+" not supported")
 
-    def watch(self,ctx):
+
+
+    def bind(self,ctx):
         """
-            Watches ctx for changes which have effect on the expression value
-            and emits the 'change' event when the expression changes.
+            Binds the node to the context `ctx` and starts watching the context for changes.
+            When a change happens, it emits a `change` event. If the new value is known,
+            it is passed as the `value` field of `event.data`.
 
             Note: any changes to an expression which does not have a cached
-            value (which are dirty) will not fire a change event. In particular,
+            value (which is dirty) will not fire a change event. In particular,
             after parsing an expression, one must first evaluate it, before
             it will fire any change events.
         """
-        pass
+        self._ctx = ctx
 
     def clone(self):
         """
-            Returns a clone of this node which can watch a diffrent context.
+            Returns a clone of this node which can bind a diffrent context.
         """
         return ExpNode()
 
@@ -380,8 +422,7 @@ class ExpNode(EventMixin):
 
     def is_assignable(self):
         """
-            Returns true if the expression can be assigned to
-            using :func:`evaluate_assignment`.
+            Returns true if the expression value can be assigned to.
         """
         ret = isinstance(self,IdentNode) and not self._const
         ret = ret or isinstance(self,AttrAccessNode)
@@ -407,7 +448,7 @@ class ConstNode(ExpNode):
     def name(self):
         return self._cached_val
 
-    def evaluate(self,context,use_cache=False):
+    def eval(self):
         return self._cached_val
 
     def clone(self):
@@ -453,37 +494,35 @@ class IdentNode(ExpNode):
         else:
             return IdentNode(self._ident)
 
-    def watch(self, context):
+    def bind(self, context):
+        super().bind(context)
         if not self._const:
-            self._watched_ctx = context
-            self._ctx_observer = observe(context)
+            self._ctx_observer = observe(self._ctx)
             self._ctx_observer.bind('change',self._context_change)
-            try:
-                self._value_observer = observe(self.evaluate(context),ignore_errors=True)
+            self._value_observer = observe(self.value,ignore_errors=True)
+            if self._value_observer:
                 self._value_observer.bind('change',self._value_change)
-            except:
-                self._value_observer = None
 
-    def evaluate(self,context,use_cache=False):
-        if (not self._dirty and use_cache) or self._const:
-            return self._cached_val
-        try:
-            self._cached_val = context._get(self._ident)
-        except KeyError:
-            self._cached_val = self.BUILTINS[self._ident]
-        self._dirty = False
+    def eval(self,force_cache_refresh):
+        if self._dirty or force_cache_refresh:
+            try:
+                self._cached_val = self._ctx._get(self._ident)
+            except KeyError:
+                self._cached_val = self.BUILTINS[self._ident]
+            self._dirty = False
         return self._cached_val
 
-    def evaluate_assignment(self, context, value):
+    def evalctx(self, context):
+        try:
+            return context._get(self._ident)
+        except KeyError:
+            return self.BUILTINS[self._ident]
+
+    def _assign(self, value):
         if self._const:
             raise Exception("Cannot assign to the constant"+self._cached_val)
         else:
-            setattr(context,self._ident,value)
-            self._cached_val = value
-            if self._dirty:
-                self._dirty = False
-            else:
-                self.emit('change',{'value':self._cached_val})
+            setattr(self._ctx,self._ident,value)
 
     def _context_change(self,event):
         if self._dirty:
@@ -538,21 +577,35 @@ class MultiChildNode(ExpNode):
                 clones.append(None)
         return clones
 
-    def evaluate(self, context,use_cache=False):
-        if not self._dirty_children and use_cache:
+    def eval(self,force_cache_refresh=False):
+        #    As an exception, this method does not set the _cached_val
+        #    variable, since it would otherwise clobber the values set in
+        #    the classes deriving from MultiChildNode.
+        if self._dirty_children or force_cache_refresh:
+            self._cached_vals = []
+            for ch in self._children:
+                if ch is not None:
+                    self._cached_vals.append(ch.eval(force_cache_refresh=force_cache_refresh))
+                else:
+                    self._cached_vals.append(None)
+            self._dirty = False
             return self._cached_vals
-        self._cached_vals = []
-        for ch in self._children:
-            if ch is not None:
-                self._last_val.append(ch.evaluate(context,use_cache=use_cache))
-            else:
-                self._last_val.append(None)
-        return self._last_val
+        else:
+            return self._cached_vals
 
-    def watch(self,context):
+    def evalctx(self,context):
+        ret = []
         for ch in self._children:
             if ch is not None:
-                ch.watch(context)
+                ret.append(ch.evalctx(context))
+            else:
+                ret.append(None)
+        return ret
+
+    def bind(self,context):
+        for ch in self._children:
+            if ch is not None:
+                ch.bind(context)
 
     def _child_changed(self,event,child_index):
         if self._dirty_children:
@@ -571,6 +624,11 @@ class ListNode(MultiChildNode):
     def __init__(self,lst):
         super().__init__(lst)
 
+    # This class does not have an eval method of its own.
+    # This means that, temporarily, the `_cached_val` need not
+    # reflect the real cached value, which is stored in
+    # `_cached_vals`. The `_cached_val` attribute is updated
+    # by the parent value getter when it is called.
     def clone(self):
         return ListNode(super().clone())
 
@@ -594,20 +652,26 @@ class FuncArgsNode(MultiChildNode):
             cloned_kwargs[k] = v.clone()
         return FuncArgsNode(cloned_args,cloned_kwargs)
 
-    def evaluate(self,context,use_cache=False):
-        args = super().evaluate(context,use_cache=use_cache)
-        if not self._dirty_kwargs and use_cache:
-            kwargs = self._kwargs
-        else:
+    def eval(self,force_cache_refresh=False):
+        args = super().eval(force_cache_refresh=force_cache_refresh)
+        if self._dirty_kwargs or force_cache_refresh:
+            self._kwargs = {}
             for (k,v) in self._kwargs.items():
-                kwargs[k] = v.evaluate(context)
-        self._cached_val = args,kwargs
+                self._kwargs[k] = v.eval(force_cache_refresh=force_cache_refresh)
+        self._cached_val = args,self._kwargs
         return self._cached_val
 
-    def watch(self, context):
-        super().watch(context)
+    def evalctx(self, context):
+        args = super().evalctx(context)
+        kwargs = {}
         for (k,v) in self._kwargs.items():
-            v.watch(context)
+            kwargs[k] = v.evalctx(context)
+        return args,kwargs
+
+    def bind(self, context):
+        super().bind(context)
+        for kw in self._kwargs.values():
+            kw.bind(context)
 
     def _kwarg_change(self, ev, k):
         if self._dirty_kwargs:
@@ -633,8 +697,18 @@ class ListSliceNode(MultiChildNode):
         start_c,end_c,step_c = super().clone()
         return ListSliceNode(self._slice,start_c,end_c,step_c)
 
-    def evaluate(self, context,use_cache=False):
-        start,end,step = super().evaluate(context,use_cache=use_cache)
+    def eval(self, force_cache_refresh=False):
+        if self._dirty or force_cache_refresh:
+            super().eval(force_cache_refresh=True)
+            start,end,step = self._cached_vals
+            if self._slice:
+                self._cached_val = slice(start,end,step)
+            else:
+                self._cached_val = start
+        return self._cached_val
+
+    def evalctx(self, context):
+        start,end,step = super().evalctx(context)
         if self._slice:
             return slice(start,end,step)
         else:
@@ -669,35 +743,45 @@ class AttrAccessNode(ExpNode):
     def clone(self):
         return AttrAccessNode(self._obj.clone(),self._attr.clone())
 
-    def evaluate(self,context,use_cache=False):
+    def eval(self,force_cache_refresh=False):
         """
            Note that this function expects the AST of the attr access to
            be rooted at the rightmost element of the attr access chain !!
         """
-        if self._dirty or not use_cache:
+        if self._dirty or force_cache_refresh:
             if self._observer:
                 self._observer.unbind()
-            obj_val = self._obj.evaluate(context)
-            self._cached_val = getattr(self._obj_val,self._attr.name())
+            obj_val = self._obj.eval(force_cache_refresh=force_cache_refresh)
+            self._cached_val = getattr(obj_val,self._attr.name())
             self._observer = observe(self._cached_val,self._change_attr_handler,ignore_errors=True)
+            self._dirty = False
         return self._cached_val
 
-    def evaluate_assignment(self, context, value):
-        obj_val = self._obj.evaluate(context)
+    def evalctx(self,context):
+        """
+           Note that this function expects the AST of the attr access to
+           be rooted at the rightmost element of the attr access chain !!
+        """
+
+        obj_val = self._obj.evalctx(context)
+        return getattr(obj_val,self._attr.name())
+
+    def _assign(self,value):
+        obj_val = self._obj.eval()
         setattr(obj_val,self._attr.name(),value)
         if self._observer:
             self._observer.unbind()
-        self._observer = observe(self._cached_val,self._change_attr_handler,ignore_errors=True)
         self._cached_val = value
+        self._observer = observe(self._cached_val,self._change_attr_handler,ignore_errors=True)
         if self._dirty:
             self._dirty = False
         else:
             self.emit('change',{'value':self._cached_val})
 
-    def watch(self,context):
+    def bind(self,context):
         if self._observer is not None:
             self._observer.unbind()
-        self._obj.watch(context)
+        self._obj.bind(context)
 
     def _change_attr_handler(self,event):
         """
@@ -739,23 +823,36 @@ class ListComprNode(ExpNode):
             cond_c = self._cond.clone()
         return ListComprNode(expr_c,var_c,lst_c,cond_c)
 
-    def evaluate(self,context,use_cache=False):
-        if self._dirty or not use_cache:
-            lst = self._lst.evaluate(context,use_cache=use_cache)
+    def eval(self,force_cache_refresh=False):
+        if self._dirty or force_cache_refresh:
+            lst = self._lst.eval(force_cache_refresh=force_cache_refresh)
             self._cached_val = []
             var_name = self._var.name()
-            context._save(var_name)
+            self._ctx._save(var_name)
             for elem in lst:
-                context._set(var_name,elem)
-                if self._cond is None or self._cond.evaluate(context):
-                    self._cached_val.append(self._expr.evaluate(context))
-            context._restore(var_name)
+                self._ctx._set(var_name,elem)
+                if self._cond is None or self._cond.eval():
+                    self._cached_val.append(self._expr.eval())
+            self._ctx._restore(var_name)
         return self._cached_val
 
-    def watch(self,context):
-        self._lst.watch(context)
-        self._cond.watch(context)
-        self._expr.watch(context)
+    def evalctx(self,context):
+        lst = self._lst.evalctx(context)
+        ret = []
+        var_name = self._var.name()
+        context._save(var_name)
+        for elem in lst:
+            context._set(var_name,elem)
+            if self._cond is None or self._cond.evalctx(context):
+                ret.append(self._expr.evalctx(context))
+        context._restore(var_name)
+        return ret
+
+    def bind(self,context):
+        super().bind(context)
+        self._lst.bind(context)
+        self._cond.bind(context)
+        self._expr.bind(context)
 
     def __repr__(self):
         if self._cond is None:
@@ -811,13 +908,13 @@ class OpNode(ExpNode):
         r_exp = self._rarg.clone()
         return OpNode(self._opstr,l_exp,r_exp)
 
-    def evaluate(self,context,use_cache=False):
-        if self._dirty or use_cache:
+    def eval(self,force_cache_refresh=False):
+        if self._dirty or force_cache_refresh:
             if self._opstr in self.UNARY:
-                self._cached_val = self._op(self._rarg.evaluate(context,use_cache=use_cache))
+                self._cached_val = self._op(self._rarg.eval(force_cache_refresh=force_cache_refresh))
             else:
-                l = self._larg.evaluate(context,use_cache=use_cache)
-                r = self._rarg.evaluate(context,use_cache=use_cache)
+                l = self._larg.eval(force_cache_refresh=force_cache_refresh)
+                r = self._rarg.eval(force_cache_refresh=force_cache_refresh)
                 self._cached_val = self._op(l,r)
             if self._opstr in ['[]','()']:
                 if self._observer is not None:
@@ -826,22 +923,21 @@ class OpNode(ExpNode):
                 self._observer.bind('change',self._change_val_handler)
         return self._cached_val
 
-    def evaluate_assignment(self, context, value):
+    def evalctx(self,context):
+        if self._opstr in self.UNARY:
+            return self._op(self._rarg.evalctx(context))
+        else:
+            return self._op(self._larg.evalctx(context),self._rarg.evalctx(context))
+
+    def _assign(self, value):
         if self._opstr != '[]':
             raise Exception("Assigning to "+repr(self)+" does not make sense.")
-        lst = self._larg.evaluate(context,use_cache=True)
-        index = self._rarg.evaluate(context,use_cache=True)
-        lst[index] = value
-        self._cached_val = value
-        if self._dirty:
-            self._dirty = False
-        else:
-            self.emit('change',{'value':self._cached_val})
+        self._rarg.value[self._larg.value] = value
 
-    def watch(self,context):
+    def bind(self,context):
         if self._opstr not in self.UNARY:
-            self._larg.watch(context)
-        self._rarg.watch(context)
+            self._larg.bind(context)
+        self._rarg.bind(context)
 
     def _change_val_handler(self,event):
         if self._dirty:
