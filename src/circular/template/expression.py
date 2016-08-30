@@ -312,6 +312,9 @@ class ExpNode(EventMixin):
     def __init__(self):
         super().__init__()
 
+        # True if the value is known to be defined
+        self.defined = False
+
         # The cached value of the expression.
         self._cached_val = None
 
@@ -335,7 +338,7 @@ class ExpNode(EventMixin):
 
             Note: The method will update the cached value and the cache status to good.
 
-            Note: The method may throw (e.g. KeyError, AttrAcessError, ...)
+            Note: The method can throw; in this case, the value will be undefined
         """
         pass
 
@@ -401,10 +404,8 @@ class ExpNode(EventMixin):
             When a change happens, it emits a `change` event. If the new value is known,
             it is passed as the `value` field of `event.data`.
 
-            Note: any changes to an expression which does not have a cached
-            value (which is dirty) will not fire a change event. In particular,
-            after parsing an expression, one must first evaluate it, before
-            it will fire any change events.
+            Note: Any changes to an expression which is defined and does not have a
+            good cached value (cache_status is False) will not fire a change event.
         """
         self._ctx = ctx
 
@@ -430,7 +431,7 @@ class ExpNode(EventMixin):
         return ret
 
     def _change_handler(self,event):
-        if self._dirty:
+        if self._dirty and self.defined:
             return
         self._dirty = True
         self.emit('change',{})
@@ -483,6 +484,7 @@ class IdentNode(ExpNode):
         if self._ident in self.CONSTANTS:
             self._const = True
             self._cached_val= self.CONSTANTS[self._ident]
+            self._defined = True
             self._dirty = False
         else:
             self._const = False
@@ -529,7 +531,7 @@ class IdentNode(ExpNode):
             setattr(self._ctx,self._ident,value)
 
     def _context_change(self,event):
-        if self._dirty:
+        if self._dirty and self.defined:
             return
         if event.data['key'] == self._ident:
             if self._value_observer:
@@ -539,14 +541,16 @@ class IdentNode(ExpNode):
                 self._value_observer=observe(self._cached_val,ignore_errors=True)
                 if self._value_observer:
                     self._value_observer.bind('change',self._value_change)
+                self.defined = True
                 self._dirty = False
                 self.emit('change',{'value':self._cached_val})
             else:
+                self.defined = False
                 self._dirty = True
                 self.emit('change',{})
 
     def _value_change(self,event):
-        if self._dirty:
+        if self._dirty and self.defined:
             return
         self._dirty = True
         if 'value' in event.data:
@@ -554,8 +558,10 @@ class IdentNode(ExpNode):
         elif event.data['type'] in ['sort','reverse']:
             self.emit('change',{})
         else:
+            self.defined = False
             self._dirty = True
             self.emit('change',{})
+
 
     def __repr__(self):
         return self.name()
@@ -599,6 +605,7 @@ class MultiChildNode(ExpNode):
                 else:
                     self._cached_vals.append(None)
             self._dirty = False
+            self._dirty_children = False
             self.defined = True
             return self._cached_vals
         else:
@@ -619,13 +626,13 @@ class MultiChildNode(ExpNode):
                 ch.bind_ctx(context)
 
     def _child_changed(self,event,child_index):
-        if self._dirty_children:
+        if self._dirty_children and self.defined:
             return
         if 'value' in event.data:
             self._cached_vals[child_index] = event.data['value']
         else:
             self._dirty_children = True
-        if not self._dirty:
+        if not self._dirty or not self.defined:
             self._dirty = True
             self.emit('change')
 
@@ -688,13 +695,13 @@ class FuncArgsNode(MultiChildNode):
             kw.bind_ctx(context)
 
     def _kwarg_change(self, ev, k):
-        if self._dirty_kwargs:
+        if self._dirty_kwargs and self.defined:
             return
         if 'value' in ev.data:
             self._cached_kwargs[k] = ev.data['value']
         else:
             self._dirty_kwargs = True
-        if not self._dirty:
+        if not self._dirty or not self.defined:
             self._dirty = True
             self.emit('change')
 
@@ -713,6 +720,7 @@ class ListSliceNode(MultiChildNode):
 
     def eval(self, force_cache_refresh=False):
         if self._dirty or force_cache_refresh:
+            self.defined = False
             super().eval(force_cache_refresh=True)
             start,end,step = self._cached_vals
             if self._slice:
@@ -720,6 +728,7 @@ class ListSliceNode(MultiChildNode):
             else:
                 self._cached_val = start
             self._dirty = False
+            self.defined = True
         return self._cached_val
 
     def evalctx(self, context):
@@ -764,12 +773,14 @@ class AttrAccessNode(ExpNode):
            be rooted at the rightmost element of the attr access chain !!
         """
         if self._dirty or force_cache_refresh:
+            self.defined = False
             if self._observer:
                 self._observer.unbind()
             obj_val = self._obj.eval(force_cache_refresh=force_cache_refresh)
             self._cached_val = getattr(obj_val,self._attr.name())
             self._observer = observe(self._cached_val,self._change_attr_handler,ignore_errors=True)
             self._dirty = False
+            self.defined = True
         return self._cached_val
 
     def evalctx(self,context):
@@ -788,6 +799,7 @@ class AttrAccessNode(ExpNode):
             self._observer.unbind()
         self._cached_val = value
         self._observer = observe(self._cached_val,self._change_attr_handler,ignore_errors=True)
+        self.defined = True
 
     def bind_ctx(self,context):
         if self._observer is not None:
@@ -798,7 +810,7 @@ class AttrAccessNode(ExpNode):
         """
             Handles changes to the value of the attribute.
         """
-        if self._dirty:
+        if self._dirty and self.defined:
             return
         if 'value' in event.data:
             self._dirty = True
@@ -836,6 +848,7 @@ class ListComprNode(ExpNode):
 
     def eval(self,force_cache_refresh=False):
         if self._dirty or force_cache_refresh:
+            self.defined = False
             lst = self._lst.eval(force_cache_refresh=force_cache_refresh)
             self._cached_val = []
             var_name = self._var.name()
@@ -845,6 +858,7 @@ class ListComprNode(ExpNode):
                 if self._cond is None or self._cond.eval(force_cache_refresh=True):
                     self._cached_val.append(self._expr.eval(force_cache_refresh=True))
             self._ctx._restore(var_name)
+            self.defined = True
             self._dirty = False
         return self._cached_val
 
@@ -922,6 +936,7 @@ class OpNode(ExpNode):
 
     def eval(self,force_cache_refresh=False):
         if self._dirty or force_cache_refresh:
+            self.defined = False
             if self._opstr in self.UNARY:
                 self._cached_val = self._op(self._rarg.eval(force_cache_refresh=force_cache_refresh))
             else:
@@ -934,6 +949,7 @@ class OpNode(ExpNode):
                 self._observer = observe(self._cached_val,ignore_errors=True)
                 if self._observer is not None:
                     self._observer.bind('change',self._change_handler)
+            self.defined = True
             self._dirty = False
         return self._cached_val
 
@@ -947,6 +963,7 @@ class OpNode(ExpNode):
         if self._opstr != '[]':
             raise Exception("Assigning to "+repr(self)+" does not make sense.")
         self._rarg.value[self._larg.value] = value
+        self.defined = True
 
     def bind_ctx(self,context):
         if self._opstr not in self.UNARY:
