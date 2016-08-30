@@ -450,7 +450,10 @@ class ConstNode(ExpNode):
     def name(self):
         return self._cached_val
 
-    def eval(self):
+    def eval(self,force_cache_refresh=False):
+        return self._cached_val
+
+    def evalctx(self, context):
         return self._cached_val
 
     def clone(self):
@@ -507,22 +510,26 @@ class IdentNode(ExpNode):
             if self._value_observer:
                 self._value_observer.bind('change',self._value_change)
 
-    def eval(self,force_cache_refresh):
-        if self._dirty or force_cache_refresh:
+    def eval(self,force_cache_refresh=False):
+        if not self._const:
+            self.defined = False
+            if self._dirty or force_cache_refresh:
+                try:
+                    self._cached_val = self._ctx._get(self._ident)
+                except KeyError:
+                    self._cached_val = self.BUILTINS[self._ident]
                 self._dirty = False
             self.defined = True
-            try:
-                self._cached_val = self._ctx._get(self._ident)
-            except KeyError:
-                self._cached_val = self.BUILTINS[self._ident]
-            self._dirty = False
         return self._cached_val
 
     def evalctx(self, context):
-        try:
-            return context._get(self._ident)
-        except KeyError:
-            return self.BUILTINS[self._ident]
+        if not self._const:
+            try:
+                return context._get(self._ident)
+            except KeyError:
+                return self.BUILTINS[self._ident]
+        else:
+            return self._cached_val
 
     def _assign(self, value):
         if self._const:
