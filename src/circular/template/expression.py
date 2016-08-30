@@ -323,8 +323,14 @@ class ExpNode(EventMixin):
             E.g. if the expression is `ob[1]` and `ctx` is
             `{ob:[1,2,3,4]}` then `evaluate_assignment(ctx,20)`
             executes `ctx.ob[1]=20`.
+
+            Note: The methods in general assume that the assignment
+            succeeds, i.e. that a next call to evaluate should return
+            value. In particular, the evaluate_assignment caches the
+            value `value` without actually computing the value of the
+            expression.
         """
-        pass
+        raise Exception("Assigning to "+str(self)+" not supported")
 
     def watch(self,ctx):
         """
@@ -516,8 +522,6 @@ class FuncArgsNode(MultiChildNode):
         self._last_val = args,kwargs
         return self._last_val
 
-    def evaluate_assignment(self, context, value):
-        raise Exception("Assigning to a function result has no effect!")
 
     def watch(self, context):
         super().watch(context)
@@ -543,9 +547,6 @@ class ListSliceNode(MultiChildNode):
             return slice(start,end,step)
         else:
             return start
-
-    def evaluate_assignment(self,context,value):
-        raise Exception("Assigning to a list slice does not make sense.")
 
     def __repr__(self):
         start,end,step=self._children
