@@ -370,7 +370,7 @@ class ExpNode(EventMixin):
         return self._cached_val
 
     @value.setter
-    def setvalue(self,val):
+    def value(self,val):
         """
             Computes the expression and assigns value to the result.
             E.g. if the expression is `ob[1]` and `ctx` is
@@ -395,7 +395,7 @@ class ExpNode(EventMixin):
 
 
 
-    def bind(self,ctx):
+    def bind_ctx(self,ctx):
         """
             Binds the node to the context `ctx` and starts watching the context for changes.
             When a change happens, it emits a `change` event. If the new value is known,
@@ -494,8 +494,8 @@ class IdentNode(ExpNode):
         else:
             return IdentNode(self._ident)
 
-    def bind(self, context):
-        super().bind(context)
+    def bind_ctx(self, context):
+        super().bind_ctx(context)
         if not self._const:
             self._ctx_observer = observe(self._ctx)
             self._ctx_observer.bind('change',self._context_change)
@@ -602,10 +602,10 @@ class MultiChildNode(ExpNode):
                 ret.append(None)
         return ret
 
-    def bind(self,context):
+    def bind_ctx(self,context):
         for ch in self._children:
             if ch is not None:
-                ch.bind(context)
+                ch.bind_ctx(context)
 
     def _child_changed(self,event,child_index):
         if self._dirty_children:
@@ -668,10 +668,10 @@ class FuncArgsNode(MultiChildNode):
             kwargs[k] = v.evalctx(context)
         return args,kwargs
 
-    def bind(self, context):
-        super().bind(context)
+    def bind_ctx(self, context):
+        super().bind_ctx(context)
         for kw in self._kwargs.values():
-            kw.bind(context)
+            kw.bind_ctx(context)
 
     def _kwarg_change(self, ev, k):
         if self._dirty_kwargs:
@@ -778,10 +778,10 @@ class AttrAccessNode(ExpNode):
         else:
             self.emit('change',{'value':self._cached_val})
 
-    def bind(self,context):
+    def bind_ctx(self,context):
         if self._observer is not None:
             self._observer.unbind()
-        self._obj.bind(context)
+        self._obj.bind_ctx(context)
 
     def _change_attr_handler(self,event):
         """
@@ -848,11 +848,11 @@ class ListComprNode(ExpNode):
         context._restore(var_name)
         return ret
 
-    def bind(self,context):
-        super().bind(context)
-        self._lst.bind(context)
-        self._cond.bind(context)
-        self._expr.bind(context)
+    def bind_ctx(self,context):
+        super().bind_ctx(context)
+        self._lst.bind_ctx(context)
+        self._cond.bind_ctx(context)
+        self._expr.bind_ctx(context)
 
     def __repr__(self):
         if self._cond is None:
@@ -934,7 +934,7 @@ class OpNode(ExpNode):
             raise Exception("Assigning to "+repr(self)+" does not make sense.")
         self._rarg.value[self._larg.value] = value
 
-    def bind(self,context):
+    def bind_ctx(self,context):
         if self._opstr not in self.UNARY:
             self._larg.bind(context)
         self._rarg.bind(context)

@@ -86,7 +86,7 @@ class For(TagPlugin):
     def bind_ctx(self, ctx):
         self._ctx = ctx
         self._clear()
-        self._exp.bind(self._ctx)
+        self._exp.bind_ctx(self._ctx)
         try:
             lst = self._exp.eval()
         except Exception as ex:

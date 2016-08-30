@@ -28,9 +28,9 @@ class InterpolatedStr(EventMixin):
         self.evaluate()
 
 
-    def bind(self,context):
+    def bind_ctx(self,context):
         for a in self.asts:
-            a.bind(context)
+            a.bind_ctx(context)
         self._dirty = True
         self._cached_val = ""
 

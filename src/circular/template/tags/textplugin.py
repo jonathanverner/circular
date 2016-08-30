@@ -30,7 +30,7 @@ class TextPlugin(TagPlugin):
         self.element = self._orig_clone.clone()
         if self.interpolated_str is not None:
             super().bind_ctx(ctx)
-            self.interpolated_str.bind(ctx)
+            self.interpolated_str.bind_ctx(ctx)
             self.element.text = self.interpolated_str.value
             self._dirty_self = False
             self._dirty_subtree = False

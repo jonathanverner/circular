@@ -60,7 +60,7 @@ class Model(TagPlugin):
 
     def bind_ctx(self,ctx):
         self.element = self.child.bind_ctx(ctx)
-        self._model.bind(ctx)
+        self._model.bind_ctx(ctx)
         self.element.value = self._model.value
         if self._update_interval:
             self.element.bind(self._update_event,self._defer_input_change)
