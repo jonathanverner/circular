@@ -30,6 +30,9 @@ class Event:
     def target(self):
         return self.targets[-1]
 
+    def __repr__(self):
+        return "<Event "+repr(self.names)+" target:"+repr(self.targets)+"; data:"+repr(self.data)+">"
+
 
 def add_event_mixin(obj):
     """Apply mixins to a class instance after creation"""

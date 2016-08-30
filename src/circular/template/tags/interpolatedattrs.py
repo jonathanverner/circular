@@ -61,7 +61,7 @@ class InterpolatedAttrsPlugin(TagPlugin):
         attrs = []
         for (name,obs) in self.values.items():
             if isinstance(obs,InterpolatedStr):
-                attrs.append(name+"="+obs.value+"("+obs._src+")")
+                attrs.append(name+"='"+obs.value+"' ("+obs._src+")")
             else:
                 attrs.append(name+"="+obs)
         return "<Attrs: "+" ".join(attrs)+" >"
