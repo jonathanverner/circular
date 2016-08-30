@@ -385,6 +385,7 @@ class ExpNode(EventMixin):
     def __repr__(self):
         return "<AST Node>"
 
+
 class ConstNode(ExpNode):
     """ Node representing a string or number constant """
     def __init__(self,val):
@@ -552,6 +553,18 @@ class MultiChildNode(ExpNode):
             self.emit('change')
 
 
+class ListNode(MultiChildNode):
+    """ Node representing a list constant, e.g. [1,2,"ahoj",3,None] """
+    def __init__(self,lst):
+        super().__init__(lst)
+
+    def clone(self):
+        return ListNode(super().clone())
+
+    def __repr__(self):
+        return repr(self._children)
+
+
 class FuncArgsNode(MultiChildNode):
     def __init__(self, args, kwargs):
         super().__init__(args)
@@ -688,16 +701,16 @@ class AttrAccessNode(ExpNode):
 
 class ListComprNode(ExpNode):
     """ Node representing comprehension, e.g. [ x+10 for x in lst if x//2 == 0 ] """
-    def __init__(self,expr, var, lst, cond):
+    def __init__(self, expr, var, lst, cond):
         super().__init__()
         self._expr = expr
         self._var = var
         self._lst = lst
         self._cond = cond
-        self._expr.bind('exp_change',self,'exp_change')
-        self._lst.bind('exp_change',self,'exp_change')
+        self._expr.bind('change',self._change_handler)
+        self._lst.bind('change',self._change_handler)
         if self._cond is not None:
-            self._cond.bind('exp_change',self,'exp_change')
+            self._cond.bind('change',self._change_handler)
 
     def clone(self):
         expr_c = self._expr.clone()
@@ -709,22 +722,18 @@ class ListComprNode(ExpNode):
             cond_c = self._cond.clone()
         return ListComprNode(expr_c,var_c,lst_c,cond_c)
 
-    def evaluate(self,context):
-        lst = self._lst.evaluate(context)
-        ret = []
-        var_name = self._var.name()
-        context._save(var_name)
-        for elem in lst:
-            context._set(var_name,elem)
-            if self._cond is None or self._cond.evaluate(context):
-                ret.append(self._expr.evaluate(context))
-
-        context._restore(var_name)
-        self._last_val = ret
-        return self._last_val
-
-    def evaluate_assignment(self):
-        raise Exception("Assigning to a list comprehension does not make sense.")
+    def evaluate(self,context,use_cache=False):
+        if self._dirty or not use_cache:
+            lst = self._lst.evaluate(context,use_cache=use_cache)
+            self._cached_val = []
+            var_name = self._var.name()
+            context._save(var_name)
+            for elem in lst:
+                context._set(var_name,elem)
+                if self._cond is None or self._cond.evaluate(context):
+                    self._cached_val.append(self._expr.evaluate(context))
+            context._restore(var_name)
+        return self._cached_val
 
     def watch(self,context):
         self._lst.watch(context)
@@ -736,21 +745,6 @@ class ListComprNode(ExpNode):
             return '['+repr(self._expr)+' for '+repr(self._var)+' in ' + repr(self._lst) + ']'
         else:
             return '['+repr(self._expr)+' for '+repr(self._var)+' in ' + repr(self._lst) + ' if '+repr(self._cond)+']'
-
-
-class ListNode(MultiChildNode):
-    """ Node representing a list constant, e.g. [1,2,"ahoj",3,None] """
-    def __init__(self,lst):
-        super().__init__(lst)
-
-    def clone(self):
-        return ListNode(super().clone())
-
-    def evaluate_assignment(self, context, value):
-        raise Exception("Assigning to a list constant has no effect!")
-
-    def __repr__(self):
-        return repr(self._children)
 
 
 class OpNode(ExpNode):
@@ -787,10 +781,10 @@ class OpNode(ExpNode):
         self._op = OpNode.OPS[operator]
         self._larg = l_exp
         self._rarg = r_exp
+        self._observer = None
         if l_exp is not None: # The unary operator 'not' does not have a left argument
-            l_exp.bind('exp_change',self,'exp_change')
-        r_exp.bind('exp_change',self,'exp_change')
-        self.bind('exp_change',self._change_handler)
+            l_exp.bind('change',self._change_handler)
+        r_exp.bind('change',self._change_handler)
 
     def clone(self):
         if self._larg is None:
@@ -800,51 +794,46 @@ class OpNode(ExpNode):
         r_exp = self._rarg.clone()
         return OpNode(self._opstr,l_exp,r_exp)
 
-    def evaluate(self,context):
-        if self._opstr in self.UNARY:
-            self._last_val = self._op(self._rarg.evaluate(context))
-        else:
-            l = self._larg.evaluate(context)
-            r = self._rarg.evaluate(context)
-            self._last_val = self._op(l,r)
-        return self._last_val
+    def evaluate(self,context,use_cache=False):
+        if self._dirty or use_cache:
+            if self._opstr in self.UNARY:
+                self._cached_val = self._op(self._rarg.evaluate(context,use_cache=use_cache))
+            else:
+                l = self._larg.evaluate(context,use_cache=use_cache)
+                r = self._rarg.evaluate(context,use_cache=use_cache)
+                self._cached_val = self._op(l,r)
+            if self._opstr in ['[]','()']:
+                if self._observer is not None:
+                    self._observer.unbind()
+                self._observer = observe(self._cached_val,self._change_handler,ignore_errors=True)
+                self._observer.bind('change',self._change_val_handler)
+        return self._cached_val
 
     def evaluate_assignment(self, context, value):
         if self._opstr != '[]':
             raise Exception("Assigning to "+repr(self)+" does not make sense.")
-        lst = self._larg.evaluate(context)
-        index = self._rarg.evaluate(context)
+        lst = self._larg.evaluate(context,use_cache=True)
+        index = self._rarg.evaluate(context,use_cache=True)
         lst[index] = value
+        self._cached_val = value
+        self._dirty = False
+        self.emit('change',{'value':self._cached_val})
 
     def watch(self,context):
-        self.stop_forwarding(only_event='change')
-        self._watched_ctx = context
         if self._opstr not in self.UNARY:
             self._larg.watch(context)
-            if self._opstr in ['[]','()']:
-                try:
-                    self.evaluate(context)
-                    observe(self._last_val,observer=self)
-                except:
-                    pass
         self._rarg.watch(context)
 
-    def _observe_val(self,context):
-        try:
-            self.evaluate(context)
-            observe(self._last_val,observer=self)
-            self._observing_val = self._last_val
-        except:
-            pass
 
-    def _change_handler(self,event):
-        if event.name == 'exp_change':
-            self.stop_forwarding(only_event='change')
-            self._observe_val(self._watched_ctx)
+    def _change_val_handler(self,event):
+        if self._dirty:
+            return
+        if 'value' in event.data:
+            self._cached_val = event.data['value']
+            self.emit('change',{'value':self._cached_val})
         else:
-            self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
-
-
+            self._dirty = True
+            self.emit('change',{})
 
     def __repr__(self):
         if self._opstr == '-unary':
