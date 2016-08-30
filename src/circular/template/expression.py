@@ -311,8 +311,19 @@ class ExpNode(EventMixin):
 
     def __init__(self):
         super().__init__()
-        self._dirty = True
+
+        # The cached value of the expression.
         self._cached_val = None
+
+        # If true, the cached_calue value of is possibly stale.
+        # Note that the node should never set its dirty bit to
+        # False if it isn't sure that no subexpression is marked
+        # as dirty. In particular, if a change event arrives
+        # from a subexpression without a value, the dirty bit
+        # should be set to True and only reset to False on a
+        # subsequent call to evaluate.
+        self._dirty = True
+
 
     def evaluate(self,context,use_cache=False):
         """
@@ -399,11 +410,8 @@ class ConstNode(ExpNode):
     def evaluate(self,context,use_cache=False):
         return self._cached_val
 
-    def evaluate_assignment(self, context, value):
-        raise Exception("Cannot assign value to constants" )
-    
     def clone(self):
-        # Const Nodes can't change, so clone's can be identical
+        # Const Nodes can't change, so clones can be identical
         return self
 
     def __repr__(self):
@@ -471,6 +479,11 @@ class IdentNode(ExpNode):
             raise Exception("Cannot assign to the constant"+self._cached_val)
         else:
             setattr(context,self._ident,value)
+            self._cached_val = value
+            if self._dirty:
+                self._dirty = False
+            else:
+                self.emit('change',{'value':self._cached_val})
 
     def _context_change(self,event):
         if self._dirty:
@@ -676,6 +689,10 @@ class AttrAccessNode(ExpNode):
             self._observer.unbind()
         self._observer = observe(self._cached_val,self._change_attr_handler,ignore_errors=True)
         self._cached_val = value
+        if self._dirty:
+            self._dirty = False
+        else:
+            self.emit('change',{'value':self._cached_val})
 
     def watch(self,context):
         if self._observer is not None:
@@ -816,14 +833,15 @@ class OpNode(ExpNode):
         index = self._rarg.evaluate(context,use_cache=True)
         lst[index] = value
         self._cached_val = value
-        self._dirty = False
-        self.emit('change',{'value':self._cached_val})
+        if self._dirty:
+            self._dirty = False
+        else:
+            self.emit('change',{'value':self._cached_val})
 
     def watch(self,context):
         if self._opstr not in self.UNARY:
             self._larg.watch(context)
         self._rarg.watch(context)
-
 
     def _change_val_handler(self,event):
         if self._dirty:
