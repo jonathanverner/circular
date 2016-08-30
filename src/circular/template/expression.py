@@ -312,10 +312,22 @@ class ExpNode(EventMixin):
     def __init__(self):
         super().__init__()
         self.bind('change',self._change_handler)
+        self._dirty = True
+        self._cached_val = None
 
-    def evaluate(self,context,self_obj=None):
-        """ Evaluates the node looking up identifiers in @context."""
-        pass
+    def evaluate(self,context,use_cache=False):
+        """
+            Evaluates the node looking up identifiers in @context.
+
+            Note: If the expression watches a context, you can
+            pass the parameter `use_cache=True` which returns
+            a cached value if there were no changes to the context
+            affecting the expression.
+        """
+        if not self._dirty and use_cache:
+            return self._cached_val
+        self._dirty = False
+        return None
 
     def evaluate_assignment(self,context,value):
         """
@@ -369,13 +381,14 @@ class ConstNode(ExpNode):
     """ Node representing a string or number constant """
     def __init__(self,val):
         super().__init__()
-        self._last_val = val
+        self._dirty = False
+        self._cached_val = val
 
     def name(self):
-        return self._last_val
+        return self._cached_val
 
-    def evaluate(self,context,self_obj = None):
-        return self._last_val
+    def evaluate(self,context,use_cache=False):
+        return self._cached_val
 
     def evaluate_assignment(self, context, value):
         raise Exception("Cannot assign value to constants" )
@@ -410,7 +423,7 @@ class IdentNode(ExpNode):
         self._ident = identifier
         if self._ident in self.CONSTANTS:
             self._const = True
-            self._last_val = self.CONSTANTS[self._ident]
+            self._cached_val= self.CONSTANTS[self._ident]
         else:
             self._const = False
 
