@@ -28,6 +28,11 @@ cons.add_to_ns('tpl',tpl)
 doc['add'].bind('click',lambda x:ctx.colours.append(ctx.colour))
 doc['pop'].bind('click',lambda x:ctx.colours.pop())
 
+def remove_col(colour,event):
+    ctx.colours.remove(col)
+
+ctx.remove_col = remove_col
+
 </script>
     
 <script>
@@ -44,12 +49,14 @@ var onLoadHandler = function() {
     <div id='test_tpl' class="{{ ' '.join(classes) }}">
     Ahoj {{ name }} {{ surname }}!
         <ul>
-            <li tpl-for="colour in colours if not colour == 'white'" style='color:{{ colour }};'>{{ colour }}</li>
+            <li tpl-for="colour in colours if not colour == 'white'" style='color:{{ colour }};'>
+                {{ colour }} <input type='submit' tpl-click='remove_col(colour)' value='Remove {{ colour }}'>
+            </li>
         </ul>
-        <input type='textinput' tpl-model='name'>
+        <label> Name:</label><input type='textinput' tpl-model='name'> <label> Surname:</label><input type='textinput' tpl-model='surname'><br/>
         <input type='textinput' tpl-model='colour'>
         <input type='submit' id='add' value='Add'>
-        <input type='submit' id='pop' value='Pop'>
+        <input type='submit' id='pop' value='Pop'><br/>
 
     </div>
     

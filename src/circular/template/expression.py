@@ -972,6 +972,16 @@ class OpNode(ExpNode):
         else:
             return self._op(self._larg.evalctx(context),self._rarg.evalctx(context))
 
+    def call(self,*inject_args,**inject_kwargs):
+        if self._opstr != '()':
+            raise Exception("Calling "+repr(self)+" does not make sense.")
+        func = self._larg.eval()
+        args,kwargs = self._rarg.eval()
+        args.extend(inject_args)
+        kwargs.update(inject_kwargs)
+        return func(*args,**kwargs)
+
+
     def _assign(self, value):
         if self._opstr != '[]':
             raise Exception("Assigning to "+repr(self)+" does not make sense.")

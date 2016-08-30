@@ -4,4 +4,5 @@ from .generictag import GenericTagPlugin
 from .interpolatedattrs import InterpolatedAttrsPlugin
 from .For import For
 from .model import Model
+from .click import Click
 
