@@ -311,7 +311,6 @@ class ExpNode(EventMixin):
 
     def __init__(self):
         super().__init__()
-        self.bind('change',self._change_handler)
         self._dirty = True
         self._cached_val = None
 
@@ -347,19 +346,15 @@ class ExpNode(EventMixin):
     def watch(self,ctx):
         """
             Watches ctx for changes which have effect on the expression value
-            and emits events when expression changes
+            and emits the 'change' event when the expression changes.
         """
-        pass
-
-    def _change_handler(self,event):
         pass
 
     def clone(self):
         """
-            Returns a clone of this node which can then watch another context.
+            Returns a clone of this node which can watch a diffrent context.
         """
         return ExpNode()
-        pass
 
     def is_function_call(self):
         """
@@ -376,6 +371,9 @@ class ExpNode(EventMixin):
         ret = ret or isinstance(self,AttrAccessNode)
         ret = ret or isinstance(self,OpNode) and self._opstr == '[]' and isinstance(self._rarg,ListSliceNode) and not self._rarg._slice
         return ret
+
+    def __repr__(self):
+        return "<AST Node>"
 
 class ConstNode(ExpNode):
     """ Node representing a string or number constant """
