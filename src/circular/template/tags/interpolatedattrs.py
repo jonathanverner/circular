@@ -36,7 +36,7 @@ class InterpolatedAttrsPlugin(TagPlugin):
     def bind_ctx(self, ctx):
         self.element = self.child.bind_ctx(ctx)
         for (name,obs) in self.values.items():
-            if isinstance(obs,InterpolatedStr()):
+            if isinstance(obs,InterpolatedStr):
                 obs.bind_ctx(ctx)
                 self.element.setAttribute(name,obs.value)
             else:

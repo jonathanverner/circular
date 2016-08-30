@@ -82,8 +82,8 @@ class Model(TagPlugin):
             timer.clear_interval(self._model_change_timer)
             self._model_change_timer = None
         if self.element:
-            if 'value' in event:
-                new_val = event['value']
+            if 'value' in event.data:
+                new_val = event.data['value']
             else:
                 new_val = self._model.value
             if not self.element.value == new_val:
@@ -98,8 +98,6 @@ class Model(TagPlugin):
                 self._model.value = self.element.value
 
     def __repr__(self):
-        if self._model.have_value():
-            return "<ModelPlugin "+self._model._exp_src+" ("+self._model.value+")>"
-        else:
-            return "<ModelPlugin "+self._model._exp_src+" (undefined)>"
+        return "<ModelPlugin "+repr(self._model)+" ("+str(self._model.value)+")>"
+
 TplNode.register_plugin(Model)

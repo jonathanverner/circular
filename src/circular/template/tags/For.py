@@ -98,7 +98,7 @@ class For(TagPlugin):
         for item in lst:
             c=Context({self._var:item})
             try:
-                if self._cond is None or self._cond.eval(c):
+                if self._cond is None or self._cond.evalctx(c):
                     clone = self.child_template.clone()
                     elem = clone.bind_ctx(c)
                     clone.bind('change',self._subtree_change_handler)

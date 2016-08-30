@@ -135,6 +135,7 @@ class ArrayMixin(object):
         change_event = {
             'observed_obj':self,
             'type':'clear',
+            'value':[]
         }
         self._orig_class.clear(self)
         #super().clear()
