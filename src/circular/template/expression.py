@@ -352,6 +352,12 @@ class ExpNode(EventMixin):
         """
         return None
 
+    @property
+    def cache_status(self):
+        """
+            Returns True, if the cache is good, otherwise returns False
+        """
+        return not self._dirty
 
     @property
     def value(self):
