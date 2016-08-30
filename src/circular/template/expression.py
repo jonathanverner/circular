@@ -343,6 +343,21 @@ class ExpNode(EventMixin):
         return ExpNode()
         pass
 
+    def is_function_call(self):
+        """
+            Returns true if the expression is a function call.
+        """
+        return isinstance(self,OpNode) and self._opstr == '()'
+
+    def is_assignable(self):
+        """
+            Returns true if the expression can be assigned to
+            using :func:`evaluate_assignment`.
+        """
+        ret = isinstance(self,IdentNode) and not self._const
+        ret = ret or isinstance(self,AttrAccessNode)
+        ret = ret or isinstance(self,OpNode) and self._opstr == '[]' and isinstance(self._rarg,ListSliceNode) and not self._rarg._slice
+        return ret
 
 class ConstNode(ExpNode):
     """ Node representing a string or number constant """

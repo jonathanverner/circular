@@ -333,6 +333,60 @@ def test_parse():
         ast = exp.parse(expr)
         assert ast.evaluate(ctx) == [-1,-5]
 
+def test_is_func():
+    ast = exp.parse('(1+1*x)*9')
+    assert ast.is_function_call() == False
+
+    ast = exp.parse('x')
+    assert ast.is_function_call() == False
+
+    ast = exp.parse('f(1+1*x)')
+    assert ast.is_function_call() == True
+
+    ast = exp.parse('a.b[10].f(1+1*x)')
+    assert ast.is_function_call() == True
+
+def test_is_ident():
+    ast = exp.parse('(1+1*x)*9')
+    assert ast.is_assignable() == False
+
+    ast = exp.parse('f(1+1*x)')
+    assert ast.is_assignable() == False
+
+    ast = exp.parse('None')
+    assert ast.is_assignable() == False
+
+    ast = exp.parse('1')
+    assert ast.is_assignable() == False
+
+    ast = exp.parse('"ahoj"')
+    assert ast.is_assignable() == False
+
+    ast = exp.parse('[1,2,3]')
+    assert ast.is_assignable() == False
+
+    ast = exp.parse('x[1:2:3]')
+    assert ast.is_assignable() == False
+
+    ast = exp.parse('a.b[10].f')
+    assert ast.is_assignable() == True
+
+    ast = exp.parse('a.b[x].f')
+    assert ast.is_assignable() == True
+
+    ast = exp.parse('a.b[x]')
+    assert ast.is_assignable() == True
+
+    ast = exp.parse('a.b')
+    assert ast.is_assignable() == True
+
+    ast = exp.parse('x')
+    assert ast.is_assignable() == True
+
+
+
+
+
 def test_eval_assignment():
     ctx = Context()
 
@@ -386,3 +440,4 @@ def test_eval_assignment():
     # Allow assigning to existing object attributes
     ast.evaluate_assignment(ctx,40)
     assert ctx.obj.test == 40
+
