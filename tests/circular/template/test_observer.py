@@ -53,3 +53,20 @@ def test_list_observer():
         'key':3,
         'old':4
     }
+
+    l.clear()
+    assert t.events.pop().data == {
+        'observed_obj':l,
+        'type':'clear',
+        'value':[],
+    }
+
+    l.append(5)
+    assert t.events.pop().data == {
+        'observed_obj':l,
+        'type':'append',
+        'index':-1,
+        'value':5,
+    }
+
+

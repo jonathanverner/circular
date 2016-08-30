@@ -1,7 +1,10 @@
 from unittest.mock import patch
 from pytest import raises
+from tests.utils import TObserver
+
 import src.circular.template.expression as exp
 from src.circular.template.context import Context
+
 
 
 
@@ -191,19 +194,19 @@ def test_parse_interpolated_string():
     ctx.name = 'Name'
 
     asts = exp.parse_interpolated_str('Test text {{ 1+3 }} other text {{ "ahoj" }} final text.')
-    val = "".join([ast.evaluate(ctx) for ast in asts])
+    val = "".join([ast.evalctx(ctx) for ast in asts])
     assert val == 'Test text 4 other text ahoj final text.'
 
     asts = exp.parse_interpolated_str('Test text {{ 1+3 }} other text {{ name }} final text.')
-    val = "".join([ast.evaluate(ctx) for ast in asts])
+    val = "".join([ast.evalctx(ctx) for ast in asts])
     assert val == 'Test text 4 other text Name final text.'
 
     asts = exp.parse_interpolated_str('Test text {{ 1+3 }} other text {{ len(name) }} final text.')
-    val = "".join([ast.evaluate(ctx) for ast in asts])
+    val = "".join([ast.evalctx(ctx) for ast in asts])
     assert val == 'Test text 4 other text 4 final text.'
 
     asts = exp.parse_interpolated_str('Test text {{ "{{{{}}{}{}}}" }} other }}')
-    val = "".join([ast.evaluate(ctx) for ast in asts])
+    val = "".join([ast.evalctx(ctx) for ast in asts])
     assert val == 'Test text {{{{}}{}{}}} other }}'
 
 
@@ -212,68 +215,68 @@ def test_parse():
 
     # Test Simple Arithmetic Expressions
     ast = exp.parse('(1+1*8)*9')
-    assert ast.evaluate(ctx) is 81
+    assert ast.evalctx(ctx) is 81
 
     # Test Simple Arithmetic Expressions
     ast = exp.parse('(1-1)')
-    assert ast.evaluate(ctx) is 0
+    assert ast.evalctx(ctx) is 0
 
     # Test Simple Arithmetic Expressions
     ast = exp.parse('(-1)')
-    assert ast.evaluate(ctx) is -1
+    assert ast.evalctx(ctx) is -1
 
     # Test Boolean Expressions
     ast = exp.parse('True and False')
-    assert ast.evaluate(ctx) is False
+    assert ast.evalctx(ctx) is False
 
     ast = exp.parse('True and not False')
-    assert ast.evaluate(ctx) is True
+    assert ast.evalctx(ctx) is True
 
     # Test is
     ast = exp.parse("1 is None")
-    assert ast.evaluate(ctx) is False
+    assert ast.evalctx(ctx) is False
 
     ast = exp.parse("None is None")
-    assert ast.evaluate(ctx) is True
+    assert ast.evalctx(ctx) is True
 
     ast = exp.parse("False is not None")
-    assert ast.evaluate(ctx) is True
+    assert ast.evalctx(ctx) is True
 
     # Test Slices
     ctx.s="abcde"
     ast = exp.parse('s[-1]')
-    assert ast.evaluate(ctx) == 'e'
+    assert ast.evalctx(ctx) == 'e'
     ast = exp.parse('s[0]')
-    assert ast.evaluate(ctx) == 'a'
+    assert ast.evalctx(ctx) == 'a'
     ast = exp.parse('s[1:3]')
-    assert ast.evaluate(ctx) == 'bc'
+    assert ast.evalctx(ctx) == 'bc'
     ast = exp.parse('s[0:-1:2]')
-    assert ast.evaluate(ctx) == 'ac'
+    assert ast.evalctx(ctx) == 'ac'
     ast = exp.parse('s[1:]')
-    assert ast.evaluate(ctx) == 'bcde'
+    assert ast.evalctx(ctx) == 'bcde'
     ast = exp.parse('s[:-1]')
-    assert ast.evaluate(ctx) == 'abcd'
+    assert ast.evalctx(ctx) == 'abcd'
 
     # Test Lists
     ast = exp.parse('[1,2,3,4]')
-    assert ast.evaluate(ctx) == [1,2,3,4]
+    assert ast.evalctx(ctx) == [1,2,3,4]
 
     # Test Comprehension
     ast = exp.parse('[p+1 for p in [1,2,3,4]]')
-    assert ast.evaluate(ctx) == [2,3,4,5]
+    assert ast.evalctx(ctx) == [2,3,4,5]
 
     ast = exp.parse('[p+1 for p in [1,2,3,4] if p%2==0]')
-    assert ast.evaluate(ctx) == [3,5]
+    assert ast.evalctx(ctx) == [3,5]
 
     # Test Builtins
     ast = exp.parse("str(10)")
-    assert ast.evaluate(ctx) == "10"
+    assert ast.evalctx(ctx) == "10"
 
     ast = exp.parse("int('21')")
-    assert ast.evaluate(ctx) == 21
+    assert ast.evalctx(ctx) == 21
 
     ast = exp.parse("len([1,2,3])")
-    assert ast.evaluate(ctx) == 3
+    assert ast.evalctx(ctx) == 3
 
     ctx.str=lambda x:"str("+str(x)+")"
     ast = exp.parse("str(10)") == "str(10)"
@@ -288,50 +291,50 @@ def test_parse():
     ctx.obj.d = [Context({'a':30})]
 
     ast = exp.parse('obj.a')
-    assert ast.evaluate(ctx) == 10
+    assert ast.evalctx(ctx) == 10
 
     ast = exp.parse('obj.b.c')
-    assert ast.evaluate(ctx) == 20
+    assert ast.evalctx(ctx) == 20
 
     ast = exp.parse('obj.d[0].a')
-    assert ast.evaluate(ctx) == 30
+    assert ast.evalctx(ctx) == 30
 
     # Test Array Access
     ast = exp.parse('mylst[0][1][2]')
     ctx.mylst = [[None,[None,None,"Ahoj"]]]
-    assert ast.evaluate(ctx) == "Ahoj"
+    assert ast.evalctx(ctx) == "Ahoj"
 
     # Test String slices
     ast = exp.parse('"ahoj"[1:]')
-    assert ast.evaluate(ctx) == "hoj"
+    assert ast.evalctx(ctx) == "hoj"
     ast = exp.parse('"ahoj"[:1]')
-    assert ast.evaluate(ctx) == "a"
+    assert ast.evalctx(ctx) == "a"
     ast = exp.parse('"ahoj"[-1]')
-    assert ast.evaluate(ctx) == "j"
+    assert ast.evalctx(ctx) == "j"
 
     # Test array concatenation
     ast = exp.parse('([0]+["mixin"])[1]')
-    assert ast.evaluate(ctx)  == "mixin"
+    assert ast.evalctx(ctx)  == "mixin"
 
     # Test Function Calls
     ast = exp.parse('"a,b,c,d".split(",")')
-    assert ast.evaluate(ctx) == ['a', 'b', 'c', 'd']
+    assert ast.evalctx(ctx) == ['a', 'b', 'c', 'd']
 
 
     # Test Complex Expressions
     expr = '(1+2*obj.a - 10)'
     ast = exp.parse(expr)
-    assert ast.evaluate(ctx) == 11
+    assert ast.evalctx(ctx) == 11
 
     expr = '[(1+2*a[1+3] - 10) for a in [[2,1,2,3,4,5],[1,2],[2,2,2,2,2,2,2]] if a[0] % 2 == 0]'
     ast = exp.parse(expr)
-    assert ast.evaluate(ctx) == [-1,-5]
+    assert ast.evalctx(ctx) == [-1,-5]
 
     # Test parse cache
     for i in range(10):
         expr = '[(1+2*a[1+3] - 10) for a in [[2,1,2,3,4,5],[1,2],[2,2,2,2,2,2,2]] if a[0] % 2 == 0]'
         ast = exp.parse(expr)
-        assert ast.evaluate(ctx) == [-1,-5]
+        assert ast.evalctx(ctx) == [-1,-5]
 
 def test_is_func():
     ast = exp.parse('(1+1*x)*9')
@@ -384,60 +387,192 @@ def test_is_ident():
     assert ast.is_assignable() == True
 
 
-
-
-
 def test_eval_assignment():
     ctx = Context()
 
     # Do not allow assigning to non-trivial expressions
     ast = exp.parse('(1+1*x)*9')
     with raises(Exception):
-        ast.evaluate_assignment(ctx,10)
+        ast.value = 10
 
     # Do not allow assigning to built-in constants
     ast = exp.parse('True')
     with raises(Exception):
-        ast.evaluate_assignment(ctx,10)
+        ast.value = 10
 
     # Do not allow assigning to function calls
     ast = exp.parse('f(1)')
     with raises(Exception):
-        ast.evaluate_assignment(ctx,10)
+        ast.value = 10
 
     # Do not allow assigning to constant lists
     ast = exp.parse("[1,2,3,4]")
     with raises(Exception):
-        ast.evaluate_assignment(ctx,10)
+        ast.value = 10
 
     # Do not allow assigning to constants
     ast = exp.parse("'ahoj'")
     with raises(Exception):
-        ast.evaluate_assignment(ctx,10)
+        ast.value = 10
 
     # Allow assigning to non-existing variables
     ast = exp.parse('x')
-    ast.evaluate_assignment(ctx,10)
+    ast.bind_ctx(ctx)
+    ast.value = 10
     assert ctx.x == 10
 
     # Allow assigning to existing variables
-    ast.evaluate_assignment(ctx,20)
+    ast.value = 20
     assert ctx.x == 20
 
     # Allow assigning to list elements
     ctx.lst = [1,2,3]
     ctx.x = 0
     ast = exp.parse("lst[x]")
-    ast.evaluate_assignment(ctx,20)
+    ast.bind_ctx(ctx)
+    ast.value = 20
     assert ctx.lst[0] == 20
 
     # Allow assigning to non-existing object attributes
     ctx.obj = Context()
     ast = exp.parse('obj.test')
-    ast.evaluate_assignment(ctx,30)
-    assert ctx.obj.test == 30
+    ast.bind_ctx(ctx)
+    ast.value = 30987
+    assert ctx.obj.test == 30987
 
     # Allow assigning to existing object attributes
-    ast.evaluate_assignment(ctx,40)
+    ast.value = 40
     assert ctx.obj.test == 40
 
+class MockObject(object):
+    def __init__(self,depth=0):
+        if depth > 0:
+            self.child = MockObject(depth-1)
+        else:
+            self.leaf = True
+
+
+class TestExpressionChanges(object):
+
+    def setup_method(self,method):
+        self.ctx = Context()
+        self.ctx._clear()
+
+    def prepare(self,expr):
+        self.obs = exp.parse(expr)
+        self.obs.bind_ctx(self.ctx)
+        try:
+            self.obs.eval()
+        except:
+            pass
+        self.t = TObserver(self.obs)
+
+    def exec_test(self,new):
+        data = self.t.events.pop().data
+
+        if new is not None:
+            assert self.obs.value == new
+        else:
+            assert self.obs.cache_status is False
+            try:
+                self.obs.eval()
+            except:
+                pass
+            assert self.obs.defined is False
+            assert 'value' not in data
+
+    def test_clone(self):
+        self.prepare("x**2 + x")
+        clone = self.obs.clone()
+        ctx = Context()
+        ctx.x=0
+        clone.bind_ctx(ctx)
+        self.ctx.x=1
+        assert clone.value == 0
+        assert self.obs.value == 2
+
+    def test_arithmetic_exp(self):
+        self.ctx.a = 1
+        self.ctx.b = -2
+        self.ctx.c = 0.5
+
+        self.prepare("a*x**2 + b*x + c*x")
+        assert self.obs.cache_status == False
+        assert self.obs.defined == False
+
+        self.ctx.d=10
+        assert len(self.t.events) == 0
+
+        self.ctx.x = 0
+        self.exec_test(0)
+
+        self.ctx.x = 1
+        self.exec_test(-0.5)
+
+    def test_comprehension(self):
+        self.ctx.lst = [-4,-3,-2,-1,0,1,2,3,4]
+        self.prepare("[p+1 for p in lst if p%2 == 0]")
+        assert self.obs.cache_status == True
+
+        self.ctx.lst.append(4)
+        assert self.obs.cache_status is False
+        self.exec_test([-3,-1,1,3,5,5])
+
+        self.ctx.lst.remove(4)
+        self.exec_test([-3,-1,1,3,5])
+
+        self.ctx.lst.clear()
+        self.exec_test([])
+
+    def test_attr_acces(self):
+        self.ctx.root = MockObject(depth=3)
+        self.prepare("root.child.child.child.leaf and True")
+        assert self.obs.value == True
+        assert self.obs.cache_status is True
+
+        self.ctx.root.child.child.child.leaf = False
+        assert self.obs.cache_status is False
+        self.exec_test(False)
+
+        self.ctx.root.child = None
+        self.exec_test(None)
+
+    def test_func(self):
+        self.ctx.func = lambda x,y:x+y
+        self.prepare("func(a,b)")
+        assert self.obs.cache_status == False
+
+        self.ctx.a = 10
+        assert self.obs.cache_status == False
+
+        self.ctx.b = 20
+        assert self.obs.cache_status == False
+        self.exec_test(30)
+
+        self.ctx.b = 30
+        self.exec_test(40)
+
+
+        self.ctx.func = lambda x,y:x*y
+        self.exec_test(300)
+
+        del self.ctx.a
+        self.exec_test(None)
+
+    def test_array_index(self):
+        self.ctx.lst = [[1,2,3],2,3,4,5]
+        self.ctx.a = 0
+        self.prepare("lst[0][a]")
+        self.obs.cache_status == True
+        assert self.obs.value == 1
+
+        self.ctx.lst[1]=2
+        self.exec_test(1)
+        self.ctx.a=2
+        self.exec_test(3)
+        self.ctx.a=3
+        self.exec_test(None)
+        self.ctx.lst[0].append(4)
+        self.exec_test(4)
+        self.ctx.lst.pop()
+        self.exec_test(4)

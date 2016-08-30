@@ -2,48 +2,16 @@ from unittest.mock import patch
 
 from tests.brython.browser.html import MockAttr, MockDomElt, MockElement
 from tests.brython.browser import document
+
 from src.circular.utils.events import EventMixin
 
 from src.circular.template.context import Context
 from src.circular.template import Template, TplNode, TagPlugin
 from src.circular.template.tpl import PrefixLookupDict
 from src.circular.template.tags import TextPlugin, GenericTagPlugin, InterpolatedAttrsPlugin, For
-from src.circular.template.expobserver import ExpObserver
-from src.circular.template.expression import ET_INTERPOLATED_STRING, parse
+from src.circular.template.interpolatedstr import InterpolatedStr
+from src.circular.template.expression import parse
 
-
-
-class InterpolatedStr(EventMixin):
-    def __init__(self,string):
-        super().__init__()
-        self.observer = ExpObserver(string,expression_type=ET_INTERPOLATED_STRING)
-        self.observer.bind('change',self._change_handler)
-
-    def bind_ctx(self,ctx):
-        self.observer.context = ctx
-
-    @property
-    def src(self):
-        return self.observer._exp_src
-
-    @property
-    def context(self):
-        return self.observer.context
-
-    @context.setter
-    def context(self,ct):
-        self.observer.context = ct
-
-    @property
-    def value(self):
-        return self.observer.value
-
-    def _change_handler(self,event):
-        old,new  = event.data.get('old',""), event.data.get('new',"")
-        self.emit('change',{'old':old,'value':new})
-
-    def __repr__(self):
-        return "InterpolatedStr("+self.src.replace("\n","\\n")+") = "+self._val
 
 
 def test_incomplete():
@@ -59,11 +27,14 @@ def test_incomplete():
     assert s.value == "Ahoj Jonathan Verner!"
 
 def test_prefix_lookup():
-    a = PrefixLookupDict(['ahoj','AhojJak'])
+    a = PrefixLookupDict(['ahoj','AhojJak','test_auto'])
     a.set_prefix('tpl-')
     assert 'tpl-ahoj' in a
     assert 'TPL-AHOJ' in a
     assert 'tpl-Ahoj-Jak' in a
+    assert 'test-auto' in a
+    assert 'test_Auto' in a
+    assert 'TestAuto' in a
 
 def test_register_plugins():
     class TestPlugin(TagPlugin):
