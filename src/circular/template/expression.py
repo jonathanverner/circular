@@ -347,6 +347,11 @@ class ExpNode(EventMixin):
         """
             Watches ctx for changes which have effect on the expression value
             and emits the 'change' event when the expression changes.
+
+            Note: any changes to an expression which does not have a cached
+            value (which are dirty) will not fire a change event. In particular,
+            after parsing an expression, one must first evaluate it, before
+            it will fire any change events.
         """
         pass
 
@@ -371,6 +376,11 @@ class ExpNode(EventMixin):
         ret = ret or isinstance(self,AttrAccessNode)
         ret = ret or isinstance(self,OpNode) and self._opstr == '[]' and isinstance(self._rarg,ListSliceNode) and not self._rarg._slice
         return ret
+
+    def _change_handler(self,event):
+        if self._dirty:
+            return
+        self.emit('change',{})
 
     def __repr__(self):
         return "<AST Node>"
@@ -436,38 +446,54 @@ class IdentNode(ExpNode):
 
     def watch(self, context):
         if not self._const:
-            self.stop_forwarding(only_event='change')
             self._watched_ctx = context
-            observe(context,observer=self)
+            self._ctx_observer = observe(context)
+            self._ctx_observer.bind('change',self._context_change)
             try:
-                observe(self.evaluate(context),observer=self,ignore_errors=True)
+                self._value_observer = observe(self.evaluate(context),ignore_errors=True)
+                self._value_observer.bind('change',self._value_change)
             except:
-                pass
+                self._value_observer = None
 
-    def evaluate(self,context):
-        if not self._const:
-            try:
-                self._last_val = context._get(self._ident)
-            except KeyError:
-                self._last_val = self.BUILTINS[self._ident]
-        return self._last_val
+    def evaluate(self,context,use_cache=False):
+        if (not self._dirty and use_cache) or self._const:
+            return self._cached_val
+        try:
+            self._cached_val = context._get(self._ident)
+        except KeyError:
+            self._cached_val = self.BUILTINS[self._ident]
+        self._dirty = False
+        return self._cached_val
 
     def evaluate_assignment(self, context, value):
         if self._const:
-            raise Exception("Cannot assign to the constant"+self._last_val)
+            raise Exception("Cannot assign to the constant"+self._cached_val)
         else:
             setattr(context,self._ident,value)
 
-    def _change_handler(self,event):
-        if event.data['observed_obj'] == self._watched_ctx:
-            if event.data['key'] == self._ident:
-                if hasattr(self,'_last_val'):
-                    self.stop_forwarding(only_obj=self._last_val)
-                if hasattr(self._watched_ctx,self._ident):
-                    observe(self._watched_ctx._get(self._ident),observer=self,ignore_errors=True)
-                self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
+    def _context_change(self,event):
+        if self._dirty:
+            return
+        if event.data['key'] == self._ident:
+            if self._value_observer:
+                self._value_observer.unbind()
+            if 'value' in event.data['key']:
+                self._cached_val = event.data['value']
+                self._value_observer=observe(event.data['value'],ignore_errors=True)
+                self.emit('change',{'value':self._cached_val})
+            else:
+                self._dirty = True
+                self.emit('change',{})
+
+    def _value_change(self,event):
+        if self._dirty:
+            return
+        if 'value' in event.data:
+            self._cached_val = event.data['value']
+            self.emit('change',{'value':self._cached_val})
         else:
-            self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
+            self._dirty = True
+            self.emit('change',{})
 
     def __repr__(self):
         return self.name()
@@ -477,9 +503,12 @@ class MultiChildNode(ExpNode):
     def __init__(self, children):
         super().__init__()
         self._children = children
-        for ch in self._children:
+        self._cached_vals = []
+        self._dirty_children = True
+        for ch_index in range(len(self._children)):
+            ch = self._children[ch_index]
             if ch is not None:
-                ch.bind('exp_change',self,'exp_change')
+                ch.bind('change',lambda ev:self._child_changed(ev, ch_index))
 
     def clone(self):
         """
@@ -495,11 +524,13 @@ class MultiChildNode(ExpNode):
                 clones.append(None)
         return clones
 
-    def evaluate(self, context):
-        self._last_val = []
+    def evaluate(self, context,use_cache=False):
+        if not self._dirty_children and use_cache:
+            return self._cached_vals
+        self._cached_vals = []
         for ch in self._children:
             if ch is not None:
-                self._last_val.append(ch.evaluate(context))
+                self._last_val.append(ch.evaluate(context,use_cache=use_cache))
             else:
                 self._last_val.append(None)
         return self._last_val
@@ -509,13 +540,26 @@ class MultiChildNode(ExpNode):
             if ch is not None:
                 ch.watch(context)
 
+    def _child_changed(self,event,child_index):
+        if self._dirty_children:
+            return
+        if 'value' in event.data:
+            self._cached_vals[child_index] = event.data['value']
+        else:
+            self._dirty_children = True
+        if not self._dirty:
+            self._dirty = True
+            self.emit('change')
+
 
 class FuncArgsNode(MultiChildNode):
     def __init__(self, args, kwargs):
         super().__init__(args)
         self._kwargs = kwargs
+        self._cached_kwargs = {}
+        self._dirty_kwargs = False
         for (k,v) in self._kwargs.items():
-            v.bind('exp_change',self,'exp_change')
+            v.bind('change',lambda ev:self._kwarg_change(self,k))
 
     def clone(self):
         cloned_args = super().clone()
@@ -524,20 +568,31 @@ class FuncArgsNode(MultiChildNode):
             cloned_kwargs[k] = v.clone()
         return FuncArgsNode(cloned_args,cloned_kwargs)
 
-
-    def evaluate(self,context):
-        args = super().evaluate(context)
-        kwargs = {}
-        for (k,v) in self._kwargs.items():
-            kwargs[k] = v.evaluate(context)
-        self._last_val = args,kwargs
-        return self._last_val
-
+    def evaluate(self,context,use_cache=False):
+        args = super().evaluate(context,use_cache=use_cache)
+        if not self._dirty_kwargs and use_cache:
+            kwargs = self._kwargs
+        else:
+            for (k,v) in self._kwargs.items():
+                kwargs[k] = v.evaluate(context)
+        self._cached_val = args,kwargs
+        return self._cached_val
 
     def watch(self, context):
         super().watch(context)
         for (k,v) in self._kwargs.items():
             v.watch(context)
+
+    def _kwarg_change(self, ev, k):
+        if self._dirty_kwargs:
+            return
+        if 'value' in ev.data:
+            self._cached_kwargs[k] = ev.data['value']
+        else:
+            self._dirty_kwargs = True
+        if not self._dirty:
+            self._dirty = True
+            self.emit('change')
 
     def __repr__(self):
         return ','.join([repr(ch) for ch in self._children]+[k+'='+repr(v) for (k,v) in self._kwargs])
@@ -552,8 +607,8 @@ class ListSliceNode(MultiChildNode):
         start_c,end_c,step_c = super().clone()
         return ListSliceNode(self._slice,start_c,end_c,step_c)
 
-    def evaluate(self, context):
-        start,end,step = super().evaluate(context)
+    def evaluate(self, context,use_cache=False):
+        start,end,step = super().evaluate(context,use_cache=use_cache)
         if self._slice:
             return slice(start,end,step)
         else:
@@ -581,36 +636,51 @@ class AttrAccessNode(ExpNode):
     def __init__(self, obj, attribute):
         super().__init__()
         self._obj = obj
-        self._obj_val = None
         self._attr = attribute
-        self._obj.bind('exp_change',self,'exp_change')
+        self._observer = None
+        self._obj.bind('change',self._change_handler)
 
     def clone(self):
         return AttrAccessNode(self._obj.clone(),self._attr.clone())
 
-    def evaluate(self,context):
+    def evaluate(self,context,use_cache=False):
         """
            Note that this function expects the AST of the attr access to
            be rooted at the rightmost element of the attr access chain !!
         """
-        self._obj_val = self._obj.evaluate(context)
-        self._last_val = getattr(self._obj_val,self._attr.name())
-        return self._last_val
+        if self._dirty or not use_cache:
+            if self._observer:
+                self._observer.unbind()
+            obj_val = self._obj.evaluate(context)
+            self._cached_val = getattr(self._obj_val,self._attr.name())
+            self._observer = observe(self._cached_val,self._change_attr_handler,ignore_errors=True)
+        return self._cached_val
 
     def evaluate_assignment(self, context, value):
-        self._obj_val = self._obj.evaluate(context)
-        setattr(self._obj_val,self._attr.name(),value)
+        obj_val = self._obj.evaluate(context)
+        setattr(obj_val,self._attr.name(),value)
+        if self._observer:
+            self._observer.unbind()
+        self._observer = observe(self._cached_val,self._change_attr_handler,ignore_errors=True)
+        self._cached_val = value
 
     def watch(self,context):
-        self.stop_forwarding(only_event='change')
-        val = self.evaluate(context)
-        observe(val,observer = self,ignore_errors=True)
+        if self._observer is not None:
+            self._observer.unbind()
         self._obj.watch(context)
 
-    def _change_handler(self,event):
-        if event.data['observed_obj'] == self._obj_val and not event.data['key'] == self._attr.name():
+    def _change_attr_handler(self,event):
+        """
+            Handles changes to the value of the attribute.
+        """
+        if self._dirty:
             return
-        self.emit('exp_change',{'source_id':event.eventid,'change':event.data})
+        if 'value' in event.data:
+            self._cached_val = event['value']
+            self.emit('change',{'value':self._cached_val})
+        else:
+            self._dirty = True
+            self.emit('change',{})
 
     def __repr__(self):
         return repr(self._obj)+'.'+repr(self._attr)
