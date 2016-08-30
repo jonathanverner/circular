@@ -96,7 +96,7 @@ class For(TagPlugin):
             self._ex=ex
         ret = []
         for item in lst:
-            c=Context({self._var:item})
+            c=Context({self._var:item},base=self._ctx)
             try:
                 if self._cond is None or self._cond.evalctx(c):
                     clone = self.child_template.clone()

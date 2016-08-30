@@ -2,7 +2,8 @@ from .observer import ListProxy, DictProxy
 
 class Context(object):
     """ Class used for looking up identifiers when evaluating an expression. """
-    def __init__(self, dct=None):
+    def __init__(self, dct=None,base=None):
+        self._base = base or {}
         if dct is None:
             self._dct = {}
         else:
@@ -26,6 +27,8 @@ class Context(object):
     def __getattr__(self,attr):
         if attr in self._dct:
             return self._dct[attr]
+        elif attr in self._base:
+            return self._base[attr]
         else:
             super().__getattribute__(attr)
 
@@ -53,7 +56,9 @@ class Context(object):
         return str(self._dct)
 
     def _get(self, name):
-        return self._dct[name]
+        if name in self._dct:
+            return self._dct[name]
+        return self._base[name]
 
     def _set(self,name,val):
         if type(val) == list:
