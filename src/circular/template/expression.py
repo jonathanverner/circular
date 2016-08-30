@@ -975,7 +975,7 @@ class OpNode(ExpNode):
     def _assign(self, value):
         if self._opstr != '[]':
             raise Exception("Assigning to "+repr(self)+" does not make sense.")
-        self._rarg.value[self._larg.value] = value
+        self._larg.value[self._rarg.value] = value
         self.defined = True
 
     def bind_ctx(self,context):
