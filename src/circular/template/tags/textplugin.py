@@ -1,6 +1,5 @@
 try:
     from ..interpolatedstr import InterpolatedStr
-    from ..expression import ET_INTERPOLATED_STRING
 except:
     from circular.template.interpolatedstr import InterpolatedStr
 
