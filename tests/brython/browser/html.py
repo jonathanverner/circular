@@ -150,7 +150,7 @@ class MockElement(EventMixin):
     def __repr__(self):
         ret = "<"+self.tagName
         if len(self.attributes) > 0:
-            ret += " "+" ".join([a.name+"="+a.value for a in self.attributes])
+            ret += " "+" ".join([a.name+"='"+str(a.value)+"'" for a in self.attributes])
         ret +=">"
         return ret
 

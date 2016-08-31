@@ -26,7 +26,6 @@ class InterpolatedStr(EventMixin):
         self._dirty_vals = True
         self._cached_vals = []
         self._cached_val = ""
-        self.ctx = Context()
         self.evaluate()
 
 
