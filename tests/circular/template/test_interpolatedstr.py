@@ -17,6 +17,12 @@ def test_string_interp():
     data = t.events.pop().data
     assert s.value == "My name is Bond, James Bond."
 
+    # Should correctly interpolate two immediately succeeding expressions
+    ctx.sur="B"
+    s = InterpolatedStr('{{name}}{{sur}}')
+    s.bind_ctx(ctx)
+    assert s.value == "JamesB"
+
 
 
 
