@@ -43,10 +43,10 @@ class Event(TagPlugin):
 
 
     def bind_ctx(self, ctx):
+        super().bind_ctx(ctx)
         self.element = self.child.bind_ctx(ctx)
         self.bind_event()
         self.handler.bind_ctx(ctx)
-        super().bind_ctx(ctx)
         return self.element
 
     def update(self):

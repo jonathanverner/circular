@@ -48,6 +48,9 @@ class MockElement(EventMixin):
     def set_id(self,value):
         self.attributes[self._indexAttr('id')].value = value
 
+    def click(self):
+        self.emit('click',{'type':'click','target':self})
+
     def clone(self):
         ret = MockElement(self.tagName)
         for attr in self.attributes:
