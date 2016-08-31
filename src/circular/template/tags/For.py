@@ -1,11 +1,11 @@
 import re
 
 try:
-    from ..tpl import TplNode
+    from ..tpl import _compile, register_plugin
     from ..expression import parse
     from ..context import Context
 except:
-    from circular.template.tpl import TplNode
+    from circular.template.tpl import _compile, register_plugin
     from circular.template.expression import parse
     from circular.template.context import Context
 
@@ -75,7 +75,7 @@ class For(TagPlugin):
             else:
                 self._cond = None
             self.children = []
-            self.child_template = TplNode(tpl_element)
+            self.child_template = _compile(tpl_element)
         self._exp.bind('change',self._self_change_chandler)
 
     def _clear(self):
@@ -129,10 +129,10 @@ class For(TagPlugin):
                 return ret
 
     def __repr__(self):
-        ret= "<For:"+self._var+" in "+str(self._exp)
+        ret= "<For "+self._var+" in "+str(self._exp)
         if self._cond is not None:
             ret += " if "+self._cond
         ret += ">"
         return ret
 
-TplNode.register_plugin(For)
+register_plugin(For)

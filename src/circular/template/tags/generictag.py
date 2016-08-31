@@ -1,9 +1,9 @@
 from browser import html
 
 try:
-    from ..tpl import TplNode
+    from ..tpl import _compile
 except:
-    from circular.template.tpl import TplNode
+    from circular.template.tpl import _compile
 
 from .tag import TagPlugin
 
@@ -35,7 +35,7 @@ class GenericTagPlugin(TagPlugin):
             self.element = tpl_element.clone()
             self.element.clear()
             for ch in tpl_element.children:
-                node = TplNode(ch)
+                node = _compile(ch)
                 node.bind('change',self._subtree_change_handler)
                 self.children.append(node)
                 self.child_elements[node] = [self._fence(node)]

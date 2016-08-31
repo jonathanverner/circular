@@ -1,9 +1,9 @@
 try:
     from ..expression import parse
-    from ..tpl import TplNode
+    from ..tpl import _compile, register_plugin
 except:
     from circular.template.expression import parse
-    from circular.template.tpl import TplNode
+    from circular.template.tpl import _compile, register_plugin
 
 from .tag import TagPlugin
 
@@ -50,7 +50,7 @@ class Model(TagPlugin):
             else:
                 self._update_interval = None
             self._model = parse(model)
-            self.child = TplNode(tpl_element)
+            self.child = _compile(tpl_element)
             assert self._model.is_assignable(), "The expression "+model+" does not support assignment"
         if self._update_interval:
             self._model.bind('change',self._defer_model_change)
@@ -100,4 +100,4 @@ class Model(TagPlugin):
     def __repr__(self):
         return "<ModelPlugin "+repr(self._model)+" ("+str(self._model.value)+")>"
 
-TplNode.register_plugin(Model)
+register_plugin(Model)

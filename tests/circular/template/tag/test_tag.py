@@ -6,9 +6,9 @@ from tests.brython.browser import document
 from src.circular.utils.events import EventMixin
 
 from src.circular.template.context import Context
-from src.circular.template import Template, TplNode, TagPlugin
-from src.circular.template.tpl import PrefixLookupDict
-from src.circular.template.tags import TextPlugin, GenericTagPlugin, InterpolatedAttrsPlugin, For
+from src.circular.template import Template, register_plugin, set_prefix
+from src.circular.template.tpl import PrefixLookupDict, PLUGINS, _compile
+from src.circular.template.tags import TagPlugin, TextPlugin, GenericTagPlugin, InterpolatedAttrsPlugin, For
 from src.circular.template.interpolatedstr import InterpolatedStr
 from src.circular.template.expression import parse
 
@@ -40,14 +40,14 @@ def test_register_plugins():
     class TestPlugin(TagPlugin):
         def __init__(self,tpl_element,model):
             pass
-    TplNode.register_plugin(TestPlugin)
-    TplNode.set_prefix('tpl-')
-    assert 'tpl-Test-Plugin' in TplNode.PLUGINS
-    meta = TplNode.PLUGINS['tpl-TestPlugin']
+    register_plugin(TestPlugin)
+    set_prefix('tpl-')
+    assert 'tpl-Test-Plugin' in PLUGINS
+    meta = PLUGINS['tpl-TestPlugin']
     assert 'model' in meta['args']
     assert meta['args']['model'] == 'model'
-    assert 'tpl-TestPlugin' in TplNode.PLUGINS
-    del TplNode.PLUGINS['tpl-TestPlugin']
+    assert 'tpl-TestPlugin' in PLUGINS
+    del PLUGINS['tpl-TestPlugin']
 
 def test_text_plugin():
     text_elem = MockElement('#text')
@@ -71,7 +71,7 @@ def test_text_plugin():
 
     text_elem = MockElement('#text')
     text_elem.text = "Hello"
-    tp = TplNode(text_elem)
+    tp = _compile(text_elem)
     c = Context({})
     elem = tp.bind_ctx(c)
     assert elem.text == "Hello"
@@ -147,7 +147,7 @@ def test_interpolated_attrs_plugin():
 
 
     div_elem.attributes.append(MockAttr('id','{{ id }}'))
-    plug = TplNode(div_elem)
+    plug = _compile(div_elem)
     ctx = Context({})
     elem = plug.bind_ctx(ctx)
     assert elem.attributes.id == ""
@@ -156,7 +156,7 @@ def test_interpolated_attrs_plugin():
     assert elem.attributes.id == "test_id"
 
     div_elem.attributes.extend([MockAttr('id','{{ id }}'),MockAttr('style','{{ css }}'),MockAttr('name','???')])
-    plug = TplNode(div_elem)
+    plug = _compile(div_elem)
     ctx = Context({})
     elem = plug.bind_ctx(ctx)
     assert elem.attributes.id == ""
@@ -209,7 +209,7 @@ def test_nested_for():
     ch_elem <= t_elem
     div_elem <= ch_elem
     doc <= div_elem
-    plug = TplNode(doc)
+    plug = _compile(doc)
     ctx = Context()
     ctx.colours = [{'names':['Red','Reddish'],'css':'red'},{'names':['Blue'],'css':'blue'}]
     nocomment_children = filter_comments(plug.bind_ctx(ctx).children)

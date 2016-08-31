@@ -1,8 +1,8 @@
 try:
-    from ..tpl import TplNode
+    from ..tpl import _compile
     from ..interpolatedstr import InterpolatedStr
 except:
-    from circular.template.tpl import TplNode
+    from circular.template.tpl import _compile
     from circular.template.interpolatedstr import InterpolatedStr
 
 
@@ -30,7 +30,7 @@ class InterpolatedAttrsPlugin(TagPlugin):
                     obs = attr.value
                 self.values[attr.name] = obs
                 tpl_element.removeAttribute(attr.name)
-            self.child = TplNode(tpl_element)
+            self.child = _compile(tpl_element)
         self.child.bind('change',self._subtree_change_handler)
 
     def bind_ctx(self, ctx):

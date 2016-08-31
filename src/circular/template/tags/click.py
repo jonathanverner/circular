@@ -1,8 +1,8 @@
 try:
-    from ..tpl import TplNode
+    from ..tpl import _compile, register_plugin
     from ..expression import parse
 except:
-    from circular.template.tpl import TplNode
+    from circular.template.tpl import _compile, register_plugin
     from circular.template.expression import parse
 
 from circular.utils.logger import Logger
@@ -22,7 +22,7 @@ class Click(TagPlugin):
             self.handler = parse(expression)
             if not self.handler.is_function_call():
                 raise Exception("Click Handler needs to be a function call: "+str(expression))
-            self.child = TplNode(tpl_element)
+            self.child = _compile(tpl_element)
         self.child.bind('change',self._subtree_change_handler)
 
     def bind_click(self):
@@ -63,4 +63,4 @@ class Click(TagPlugin):
 
     def __repr__(self):
         ret = "<OnClick: "+str(self.handler)+">"
-TplNode.register_plugin(Click)
+register_plugin(Click)
