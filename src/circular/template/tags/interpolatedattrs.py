@@ -34,6 +34,7 @@ class InterpolatedAttrsPlugin(TagPlugin):
         self.child.bind('change',self._subtree_change_handler)
 
     def bind_ctx(self, ctx):
+        super().bind_ctx(ctx)
         self.element = self.child.bind_ctx(ctx)
         for (name,obs) in self.values.items():
             if isinstance(obs,InterpolatedStr):
@@ -41,7 +42,6 @@ class InterpolatedAttrsPlugin(TagPlugin):
                 self.element.setAttribute(name,obs.value)
             else:
                 self.element.setAttribute(name,obs)
-        super().bind_ctx(ctx)
         return self.element
 
     def update(self):

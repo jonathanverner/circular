@@ -49,6 +49,7 @@ class GenericTagPlugin(TagPlugin):
             self._dirty_subtree = False
 
     def bind_ctx(self, ctx):
+        super().bind_ctx(ctx)
         self.element = self.element.clone()
         self.element.clear()
         for ch in self.children:
@@ -57,7 +58,6 @@ class GenericTagPlugin(TagPlugin):
                 rendered_elems = [rendered_elems]
             self.child_elements[ch] = rendered_elems+[self._fence(ch)]
             self.element <= self.child_elements[ch]
-        super().bind_ctx(ctx)
         return self.element
 
     def replace(self,ch,elems):

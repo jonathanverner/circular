@@ -84,7 +84,7 @@ class For(TagPlugin):
         self.children = []
 
     def bind_ctx(self, ctx):
-        self._ctx = ctx
+        super().bind_ctx(ctx)
         self._clear()
         self._exp.bind_ctx(self._ctx)
         try:
@@ -108,7 +108,6 @@ class For(TagPlugin):
                 logger.exception(ex)
                 logger.warn("Exception",ex,"when evaluating condition",self._cond,"with context",c)
                 self._ex=ex
-        super().bind_ctx(ctx)
         return ret
 
     def update(self):

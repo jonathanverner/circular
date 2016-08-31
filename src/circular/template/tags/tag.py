@@ -52,6 +52,7 @@ class TagPlugin(EventMixin):
         """ Binds a context to the node and returns a DOMNode
             representing the bound subtree.
         """
+        self._ctx = ctx
         self._dirty_self = False
         self._dirty_subtree = False
         self._bound = True
