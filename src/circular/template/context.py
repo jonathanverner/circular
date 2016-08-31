@@ -24,11 +24,18 @@ class Context(object):
     def __iter__(self):
         return iter(self._dct)
 
+    def __contains__(self, attr):
+        if attr in self._dct:
+            return True
+        return attr in self._base
+
     def __getattr__(self,attr):
+        if attr.startswith('_'):
+            super().__getattribute__(attr)
         if attr in self._dct:
             return self._dct[attr]
         elif attr in self._base:
-            return self._base[attr]
+            return getattr(self._base,attr)
         else:
             super().__getattribute__(attr)
 
@@ -58,7 +65,7 @@ class Context(object):
     def _get(self, name):
         if name in self._dct:
             return self._dct[name]
-        return self._base[name]
+        return self._base._get(name)
 
     def _set(self,name,val):
         if type(val) == list:
