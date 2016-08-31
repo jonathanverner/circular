@@ -13,9 +13,9 @@
 
 from browser import document as doc
 from circular.console import Console
-from circular.template import Template, Context
+from circular.template import Template, Context, set_prefix
 cons = Console(doc["console"])
-Template.set_prefix('tpl-')
+set_prefix('tpl-')
 tpl = Template(doc['test_tpl'])
 ctx = Context()
 tpl.bind_ctx(ctx)
