@@ -674,7 +674,7 @@ class FuncArgsNode(MultiChildNode):
         self._cached_kwargs = {}
         self._dirty_kwargs = False
         for (k,v) in self._kwargs.items():
-            v.bind('change',lambda ev:self._kwarg_change(self,k))
+            v.bind('change',lambda ev:self._kwarg_change(ev,k))
 
     def clone(self):
         cloned_args = super().clone()
@@ -686,10 +686,10 @@ class FuncArgsNode(MultiChildNode):
     def eval(self,force_cache_refresh=False):
         args = super().eval(force_cache_refresh=force_cache_refresh)
         if self._dirty_kwargs or force_cache_refresh:
-            self._kwargs = {}
+            self._cached_kwargs = {}
             for (k,v) in self._kwargs.items():
-                self._kwargs[k] = v.eval(force_cache_refresh=force_cache_refresh)
-        self._cached_val = args,self._kwargs
+                self._cached_kwargs[k] = v.eval(force_cache_refresh=force_cache_refresh)
+        self._cached_val = args,self._cached_kwargs
         self.defined = True
         self._dirty_kwargs = False
         self._dirty = False

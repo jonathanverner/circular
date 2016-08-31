@@ -320,6 +320,15 @@ def test_parse():
     ast = exp.parse('"a,b,c,d".split(",")')
     assert ast.evalctx(ctx) == ['a', 'b', 'c', 'd']
 
+    ctx.func = lambda x,ev:str(x+10)+ev
+    ctx.ch = 20
+    ctx.s='Hi'
+    ast = exp.parse("func(ch,ev=s)")
+    ast.bind_ctx(ctx)
+    ctx.s='Hello'
+    assert ast.eval() == '30Hello'
+    assert ast.evalctx(ctx) == '30Hello'
+
 
     # Test Complex Expressions
     expr = '(1+2*obj.a - 10)'
