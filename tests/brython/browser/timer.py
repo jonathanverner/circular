@@ -27,7 +27,7 @@ class Timer:
 
 def set_interval(meth,msec):
     meth()
-    return 10
+    return None
 
 def clear_interval(timer):
     return
