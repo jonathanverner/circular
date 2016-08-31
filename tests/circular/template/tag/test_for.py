@@ -39,16 +39,21 @@ def test_nested_for():
     div_elem = MockElement('div')
     div_elem.attributes.append(MockAttr('for','c in colours'))
     div_elem.attributes.append(MockAttr('style','{{ c["css"] }}'))
-    ch_elem = MockElement('span')
+    ch_elem = MockElement('span',id='id-{{name}}')
     ch_elem.attributes.append(MockAttr('for','name in c["names"]'))
     t_elem = MockElement('#text')
-    t_elem.text = "{{ name }}"
+    t_elem.text = "{{ name }}{{parent_attr}}"
     ch_elem <= t_elem
     div_elem <= ch_elem
     doc <= div_elem
     plug = _compile(doc)
     ctx = Context()
+    ctx.parent_attr = "Test"
     ctx.colours = [{'names':['Red','Reddish'],'css':'red'},{'names':['Blue'],'css':'blue'}]
-    nocomment_children = filter_comments(plug.bind_ctx(ctx).children)
+    doc = plug.bind_ctx(ctx)
+    nocomment_children = filter_comments(doc.children)
     assert len(nocomment_children) == 2
     assert len(filter_comments(nocomment_children[0].children)) == 2
+    red_elem = doc._findChild('id-Red')
+    assert red_elem.children[0].text == 'RedTest'
+
