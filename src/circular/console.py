@@ -1,8 +1,10 @@
 from browser import DOMNode, window
-import sys, traceback
+import sys
+import traceback
 
 from .utils.logger import Logger
 logger = Logger(__name__)
+
 
 class Console:
     _credits = """    Thanks to CWI, CNRI, BeOpen.com, Zope Corporation and a cast of thousands
@@ -52,12 +54,13 @@ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 """
-    def __init__(self,elem):
+
+    def __init__(self, elem):
         self._elem = elem
 
-        self.credits.__repr__ = lambda:Console._credits
-        self.copyright.__repr__ = lambda:Console._copyright
-        self.license.__repr__ = lambda:Console._license
+        self.credits.__repr__ = lambda: Console._credits
+        self.copyright.__repr__ = lambda: Console._copyright
+        self.license.__repr__ = lambda: Console._license
 
         self._redirected = False
         self._oldstdout = None
@@ -65,26 +68,30 @@ POSSIBILITY OF SUCH DAMAGE.
 
         self.history = []
         self.current = 0
-        self._status = "main" # or "block" if typing inside a block
+        self._status = "main"  # or "block" if typing inside a block
 
         # execution namespace
         self.editor_ns = {
-            'credits':self.credits,
-            'copyright':self.copyright,
-            'license':self.license,
-            '__name__':'__console__',
+            'credits': self.credits,
+            'copyright': self.copyright,
+            'license': self.license,
+            '__name__': '__console__',
         }
 
         self._elem.bind('keypress', self.myKeyPress)
         self._elem.bind('keydown', self.myKeyDown)
         self._elem.bind('click', self.cursorToEnd)
         v = sys.implementation.version
-        self._elem.value = "Brython %s.%s.%s on %s %s\n%s\n>>> " % (
-        v[0], v[1], v[2], window.navigator.appName, window.navigator.appVersion,'Type "copyright()", "credits()" or "license()" for more information.')
+        self._elem.value = "Brython %s.%s.%s on %s %s\n%s\n>>> " % (v[0],
+                                                                    v[1],
+                                                                    v[2],
+                                                                    window.navigator.appName,
+                                                                    window.navigator.appVersion,
+                                                                    'Type "copyright()", "credits()" or "license()" for more information.')
         self._elem.focus()
         self.cursorToEnd()
 
-    def add_to_ns(self,key,value):
+    def add_to_ns(self, key, value):
         self.editor_ns[key] = value
 
     def _redirectOut(self):
@@ -104,15 +111,13 @@ POSSIBILITY OF SUCH DAMAGE.
     def credits(self):
         self.write(self._credits)
 
-
     def copyright(self):
         self.write(self._copyright)
-
 
     def license(self):
         self.write(self._license)
 
-    def write(self,data):
+    def write(self, data):
         self._elem.value += str(data)
 
     def cursorToEnd(self, *args):
@@ -120,14 +125,13 @@ POSSIBILITY OF SUCH DAMAGE.
         self._elem.setSelectionRange(pos, pos)
         self._elem.scrollTop = self._elem.scrollHeight
 
-    def get_col(self,area):
+    def get_col(self, area):
         # returns the column num of cursor
         sel = self._elem.selectionStart
         lines = self._elem.value.split('\n')
         for line in lines[:-1]:
             sel -= len(line) + 1
         return sel
-
 
     def myKeyPress(self, event):
         if event.keyCode == 9:  # tab key
@@ -154,7 +158,7 @@ POSSIBILITY OF SUCH DAMAGE.
                     self._redirectOut()
                     _ = self.editor_ns['_'] = eval(self.currentLine, self.editor_ns)
                     if _ is not None:
-                        self.write(repr(_)+'\n')
+                        self.write(repr(_) + '\n')
                     self._elem.value += '>>> '
                     self._status = "main"
                 except IndentationError:
@@ -162,7 +166,7 @@ POSSIBILITY OF SUCH DAMAGE.
                     self._status = "block"
                 except SyntaxError as msg:
                     if str(msg) == 'invalid syntax : triple string end not found' or \
-                        str(msg).startswith('Unbalanced bracket'):
+                            str(msg).startswith('Unbalanced bracket'):
                         self._elem.value += '... '
                         self._status = "3string"
                     elif str(msg) == 'eval() argument must be an expression':
@@ -196,7 +200,7 @@ POSSIBILITY OF SUCH DAMAGE.
                 self._status = "main"
                 try:
                     self._redirectOut()
-                    _ = exec(block_src,self.editor_ns)
+                    _ = exec(block_src, self.editor_ns)
                     if _ is not None:
                         print(repr(_))
                 except:

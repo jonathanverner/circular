@@ -10,13 +10,15 @@ logger = Logger(__name__)
 
 from .tag import TagPlugin
 
+
 class Event(TagPlugin):
     EVENT = ''
-    def __init__(self,tpl_element,expression=None):
+
+    def __init__(self, tpl_element, expression=None):
         super().__init__(tpl_element)
         self.element = None
         self.handler = None
-        if isinstance(tpl_element,Event):
+        if isinstance(tpl_element, Event):
             self.handler = tpl_element.handler.clone()
             self.child = tpl_element.child.clone()
             self.EVENT = tpl_element.EVENT
@@ -25,22 +27,21 @@ class Event(TagPlugin):
             if not self.handler.is_function_call():
                 raise Exception(self.EVENT+" Handler needs to be a function call: "+str(expression))
             self.child = _compile(tpl_element)
-        self.child.bind('change',self._subtree_change_handler)
+        self.child.bind('change', self._subtree_change_handler)
 
     def bind_event(self):
-        if type(self.element) == list:
+        if isinstance(self.element, list):
             for el in self.element:
-                el.bind(self.EVENT,self._event_handler)
+                el.bind(self.EVENT, self._event_handler)
         else:
-            self.element.bind(self.EVENT,self._event_handler)
+            self.element.bind(self.EVENT, self._event_handler)
 
     def unbind_event(self):
-        if type(self.element) == list:
+        if isinstance(self.element, list):
             for elt in self.element:
-                elt.unbind(self.EVENT,self._event_handler)
+                elt.unbind(self.EVENT, self._event_handler)
         else:
-            self.element.unbind(self.EVENT,self._event_handler)
-
+            self.element.unbind(self.EVENT, self._event_handler)
 
     def bind_ctx(self, ctx):
         super().bind_ctx(ctx)
@@ -56,15 +57,16 @@ class Event(TagPlugin):
             self.element = self.child.update()
             self.bind_event()
 
-    def _event_handler(self,event):
-        logger.log("Handling "+self.EVENT)
+    def _event_handler(self, event):
+        logger.log("Handling " + self.EVENT)
         try:
             self.handler.call(event=event)
         except Exception as ex:
             logger.exception(ex)
 
     def __repr__(self):
-        ret = "<"+self.EVENT+" "+str(self.handler)+">"
+        ret = "<" + self.EVENT + " " + str(self.handler) + ">"
+
 
 class Click(Event):
     EVENT = 'click'

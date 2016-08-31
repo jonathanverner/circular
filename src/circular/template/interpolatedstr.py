@@ -6,11 +6,12 @@ except:
 from .expression import parse, parse_interpolated_str
 from .context import Context
 
+
 class InterpolatedStr(EventMixin):
 
-    def __init__(self,string):
+    def __init__(self, string):
         super().__init__()
-        if isinstance(string,InterpolatedStr):
+        if isinstance(string, InterpolatedStr):
             self._src = string._src
             self.asts = []
             for a in string.asts:
@@ -28,8 +29,7 @@ class InterpolatedStr(EventMixin):
         self._cached_val = ""
         self.evaluate()
 
-
-    def bind_ctx(self,context):
+    def bind_ctx(self, context):
         for a in self.asts:
             a.bind_ctx(context)
         self._dirty = True
@@ -38,7 +38,7 @@ class InterpolatedStr(EventMixin):
     def clone(self):
         return InterpolatedStr(self)
 
-    def _change_chandler(self,event,ast_index):
+    def _change_chandler(self, event, ast_index):
         if not self._dirty_vals:
             if 'value' in event.data:
                 self._cached_vals[ast_index] = event.data['value']
@@ -47,7 +47,7 @@ class InterpolatedStr(EventMixin):
         if self._dirty:
             return
         self._dirty = True
-        self.emit('change',{})
+        self.emit('change', {})
 
     @property
     def value(self):
@@ -60,7 +60,7 @@ class InterpolatedStr(EventMixin):
 
     def evaluate(self):
         self._cached_val = ""
-        self._cached_vals=[]
+        self._cached_vals = []
         for ast in self.asts:
             try:
                 self._cached_vals.append(ast.eval())
@@ -68,6 +68,3 @@ class InterpolatedStr(EventMixin):
                 self._cached_vals.append("")
         self._cached_val = "".join(self._cached_vals)
         self._dirty = False
-
-
-

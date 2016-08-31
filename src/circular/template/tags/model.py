@@ -13,6 +13,7 @@ except:
     from circular.utils.logger import Logger
 logger = Logger(__name__)
 
+
 class Model(TagPlugin):
     """
         The model plugin binds an input element value to a context variable (or a simple expression).
@@ -38,7 +39,7 @@ class Model(TagPlugin):
         self._model_change_timer = None
         self._input_change_timer = None
         self._ctx = None
-        if isinstance(tpl_element,Model):
+        if isinstance(tpl_element, Model):
             self._update_event = tpl_element._update_event
             self._update_interval = tpl_element._update_interval
             self._model = tpl_element.model.clone()
@@ -53,31 +54,33 @@ class Model(TagPlugin):
             self.child = _compile(tpl_element)
             assert self._model.is_assignable(), "The expression "+model+" does not support assignment"
         if self._update_interval:
-            self._model.bind('change',self._defer_model_change)
+            self._model.bind('change', self._defer_model_change)
         else:
-            self._model.bind('change',self._model_change)
-        self.child.bind('change',self._subtree_change_handler)
+            self._model.bind('change', self._model_change)
+        self.child.bind('change', self._subtree_change_handler)
 
-    def bind_ctx(self,ctx):
+    def bind_ctx(self, ctx):
         self.element = self.child.bind_ctx(ctx)
         self._model.bind_ctx(ctx)
         self.element.value = self._model.value
         if self._update_interval:
-            self.element.bind(self._update_event,self._defer_input_change)
+            self.element.bind(self._update_event, self._defer_input_change)
         else:
-            self.element.bind(self._update_event,self._input_change)
+            self.element.bind(self._update_event, self._input_change)
         super().bind_ctx(ctx)
         return self.element
 
-    def _defer_model_change(self,event):
+    def _defer_model_change(self, event):
         if self._model_change_timer is None:
-            self._model_change_timer = timer.set_interval(self._model_change,self._update_interval)
+            self._model_change_timer = timer.set_interval(
+                self._model_change, self._update_interval)
 
-    def _defer_input_change(self,event):
+    def _defer_input_change(self, event):
         if self._input_change_timer is None:
-            self._input_change_timer = timer.set_interval(self._input_change,self._update_interval)
+            self._input_change_timer = timer.set_interval(
+                self._input_change, self._update_interval)
 
-    def _model_change(self,event=None):
+    def _model_change(self, event=None):
         if self._model_change_timer:
             timer.clear_interval(self._model_change_timer)
             self._model_change_timer = None
@@ -89,7 +92,7 @@ class Model(TagPlugin):
             if not self.element.value == new_val:
                 self.element.value = new_val
 
-    def _input_change(self,event=None):
+    def _input_change(self, event=None):
         if self.element:
             if self._model.value != self.element.value:
                 if self._input_change_timer:
@@ -98,6 +101,7 @@ class Model(TagPlugin):
                 self._model.value = self.element.value
 
     def __repr__(self):
-        return "<Model "+repr(self._model)+" ("+str(self._model.value)+")>"
+        return "<Model " + repr(self._model) + \
+            " (" + str(self._model.value) + ")>"
 
 register_plugin(Model)

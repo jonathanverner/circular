@@ -5,57 +5,60 @@ try:
 except:
     from circular.utils.events import EventMixin
 
+
 class PrefixLookupDict(dict):
-    def __init__(self,init=None):
+
+    def __init__(self, init=None):
         super().__init__()
         self._prefix = ''
-        if isinstance(init,list):
+        if isinstance(init, list):
             for item in init:
                 self[item] = item
-        elif isinstance(init,dict):
-            for (k,v) in init.items():
+        elif isinstance(init, dict):
+            for (k, v) in init.items():
                 self[k] = v
 
-    def _canonical(self,key):
-        k = key.upper().replace('-','').replace('_','')
+    def _canonical(self, key):
+        k = key.upper().replace('-', '').replace('_', '')
         if k.startswith(self._prefix):
             return k[len(self._prefix):]
         else:
             return k
 
-    def remove(self,key):
+    def remove(self, key):
         try:
             del self[key]
         except:
             pass
 
-    def set_prefix(self,prefix):
-        self._prefix = prefix.upper().replace('-','').replace('_','')
+    def set_prefix(self, prefix):
+        self._prefix = prefix.upper().replace('-', '').replace('_', '')
 
     def update(self, other):
-        for (k,v) in other.items():
+        for (k, v) in other.items():
             self[k] = v
 
     def __delitem__(self, key):
         return super().__delitem__(self._canonical(key))
 
-    def __getitem__(self,key):
+    def __getitem__(self, key):
         return super().__getitem__(self._canonical(key))
 
-    def __setitem__(self,key,value):
-        return super().__setitem__(self._canonical(key),value)
+    def __setitem__(self, key, value):
+        return super().__setitem__(self._canonical(key), value)
 
-    def __contains__(self,key):
+    def __contains__(self, key):
         return super().__contains__(self._canonical(key))
 
 PLUGINS = PrefixLookupDict()
 
-def _build_kwargs(element,plugin):
+
+def _build_kwargs(element, plugin):
     ld = PrefixLookupDict(plugin['args'])
     kwargs = {}
     for attr in element.attributes:
         if attr.name in ld:
-            kwargs[ld[attr.name]]=attr.value
+            kwargs[ld[attr.name]] = attr.value
             element.removeAttribute(attr.name)
     return kwargs
 
@@ -65,7 +68,7 @@ def _compile(tpl_element):
         # Interpolated text node plugin
         return TextPlugin(tpl_element)
 
-    if not hasattr(tpl_element,'_plugins'):
+    if not hasattr(tpl_element, '_plugins'):
         # This is the first pass over tpl_element,
         # we need to find out what the plugins are
         # and remove their params from the element
@@ -73,29 +76,30 @@ def _compile(tpl_element):
         plugin_metas = []
         for attr in tpl_element.attributes:
             if attr.name in PLUGINS:
-                plugin_metas.append((attr.value,PLUGINS[attr.name]))
+                plugin_metas.append((attr.value, PLUGINS[attr.name]))
                 tpl_element.removeAttribute(attr.name)
 
         # Order the plugins by priority
-        plugin_metas.sort(key = lambda x:x[1]['priority'])
+        plugin_metas.sort(key=lambda x: x[1]['priority'])
         plugins = []
-        for (arg,p) in plugin_metas:
-            plugins.append((p,[arg],_build_kwargs(tpl_element,p)))
+        for (arg, p) in plugin_metas:
+            plugins.append((p, [arg], _build_kwargs(tpl_element, p)))
 
         if tpl_element.nodeName in PLUGINS:
             tplug = PLUGINS[tpl_element.nodeName]
-            plugins.append(tplug, [], _build_kwargs(tpl_element,tplug))
+            plugins.append(tplug, [], _build_kwargs(tpl_element, tplug))
         set_meta = True
-        setattr(tpl_element,'_plugins',plugins)
+        setattr(tpl_element, '_plugins', plugins)
 
-    plugins = getattr(tpl_element,'_plugins')
+    plugins = getattr(tpl_element, '_plugins')
 
     # Now we initialize the first plugin, if any
     if len(plugins) > 0:
-        plug_meta,args,kwargs = plugins.pop()
-        return p['class'](tpl_element,*args,**kwargs)
+        plug_meta, args, kwargs = plugins.pop()
+        return p['class'](tpl_element, *args, **kwargs)
 
-    # If there are any attributes left, we initialize the InterpolatedAttrsPlugin
+    # If there are any attributes left, we initialize the
+    # InterpolatedAttrsPlugin
     if len(tpl_element.attributes) > 0:
         return InterpolatedAttrsPlugin(tpl_element)
 
@@ -104,16 +108,17 @@ def _compile(tpl_element):
 
 
 def register_plugin(plugin_class):
-    plugin_name = getattr(plugin_class,'NAME',None) or plugin_class.__name__
+    plugin_name = getattr(plugin_class, 'NAME', None) or plugin_class.__name__
     meta = {
-        'class':plugin_class,
-        'args':PrefixLookupDict(list(plugin_class.__init__.__code__.co_varnames)),
+        'class': plugin_class,
+        'args': PrefixLookupDict(list(plugin_class.__init__.__code__.co_varnames)),
         'name': plugin_name,
-        'priority':getattr(plugin_class,'PRIORITY',0)
+        'priority': getattr(plugin_class, 'PRIORITY', 0)
     }
     meta['args'].remove('self')
     meta['args'].remove('tpl_element')
-    PLUGINS[plugin_name]=meta
+    PLUGINS[plugin_name] = meta
+
 
 def set_prefix(prefix):
     """
@@ -127,6 +132,7 @@ def set_prefix(prefix):
         ```
     """
     PLUGINS.set_prefix(prefix)
+
 
 class Template:
     """
@@ -165,20 +171,20 @@ class Template:
         ```
     """
 
-    def __init__(self,elem):
+    def __init__(self, elem):
         self.root = _compile(elem)
         self.elem = elem
         self.update_timer = None
 
-    def bind_ctx(self,ctx):
+    def bind_ctx(self, ctx):
         elem = self.root.bind_ctx(ctx)
-        self.elem.parent.replaceChild(elem,self.elem)
+        self.elem.parent.replaceChild(elem, self.elem)
         self.elem = elem
-        self.root.bind('change',self._start_timer)
+        self.root.bind('change', self._start_timer)
 
-    def _start_timer(self,event):
+    def _start_timer(self, event):
         if self.update_timer is None:
-            self.update_timer = timer.set_interval(self.update,50)
+            self.update_timer = timer.set_interval(self.update, 50)
 
     def update(self):
         """ FIXME: We need handle the case when the root node

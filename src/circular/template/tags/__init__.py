@@ -5,4 +5,3 @@ from .interpolatedattrs import InterpolatedAttrsPlugin
 from .For import For
 from .model import Model
 from .event import Click
-

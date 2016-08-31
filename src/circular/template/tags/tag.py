@@ -3,6 +3,7 @@ try:
 except:
     from circular.utils.events import EventMixin
 
+
 class TagPlugin(EventMixin):
     """
         Plugins extending this class can set the `PRIORITY` class attribute to a non-zero
@@ -35,20 +36,20 @@ class TagPlugin(EventMixin):
         would apply to template elements of the form `<foo ...>` or `<div foo="..." ...>`.
     """
 
-    def __init__(self,tpl_element):
+    def __init__(self, tpl_element):
         """
             @tpl_element is either a DOMNode or an instance of TagPlugin.
             In the second case, the TagPlugin should be cloned.
         """
         super().__init__()
-        if isinstance(tpl_element,TagPlugin):
+        if isinstance(tpl_element, TagPlugin):
             self._orig_clone = tpl_element._orig_clone.clone()
         else:
             self._orig_clone = tpl_element.clone()
         self._dirty_self = True
         self._dirty_subtree = True
 
-    def bind_ctx(self,ctx):
+    def bind_ctx(self, ctx):
         """ Binds a context to the node and returns a DOMNode
             representing the bound subtree.
         """
@@ -72,16 +73,16 @@ class TagPlugin(EventMixin):
         """
         return self.__class__(self)
 
-    def _self_change_chandler(self,event):
+    def _self_change_chandler(self, event):
         if self._dirty_self:
             return
         self._dirty_self = True
-        self.emit('change',event)
+        self.emit('change', event)
 
-    def _subtree_change_handler(self,event):
+    def _subtree_change_handler(self, event):
         if self._dirty_subtree:
             return
         else:
             self._dirty_subtree = True
         if not self._dirty_self:
-            self.emit('change',event)
+            self.emit('change', event)

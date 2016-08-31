@@ -5,11 +5,13 @@ except:
 
 from .tag import TagPlugin
 
+
 class TextPlugin(TagPlugin):
+
     def __init__(self, tpl_element):
         super().__init__(tpl_element)
         self.interpolated_str = None
-        if isinstance(tpl_element,TextPlugin):
+        if isinstance(tpl_element, TextPlugin):
             if tpl_element.interpolated_str is not None:
                 self.interpolated_str = tpl_element.interpolated_str.clone()
                 self.interpolated_str.bind('change',self._self_change_chandler)
@@ -25,7 +27,7 @@ class TextPlugin(TagPlugin):
                 self._dirty_subtree = False
         self.element = self._orig_clone
 
-    def bind_ctx(self,ctx):
+    def bind_ctx(self, ctx):
         self.element = self._orig_clone.clone()
         if self.interpolated_str is not None:
             super().bind_ctx(ctx)
@@ -44,4 +46,4 @@ class TextPlugin(TagPlugin):
         if self.interpolated_str is not None:
             return "<Text '"+self.interpolated_str._src.replace("\n","\\n")+"' => '"+self.element.text.replace("\n","\\n")+"'>"
         else:
-            return "<Text '"+self.element.text.replace("\n","\\n")+"'>"
+            return "<Text '" + self.element.text.replace("\n", "\\n") + "'>"

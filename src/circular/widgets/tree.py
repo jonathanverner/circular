@@ -1,5 +1,6 @@
 from lib.template.tag import TagPlugin, TplNode, T_EXPRESSION
 
+
 class Tree(TagPlugin):
     """
         Usage:
@@ -11,8 +12,8 @@ class Tree(TagPlugin):
             </tpl-template>
         </w-tree>
     """
-    NAME='w-tree'
-    TEMPLATE="""
+    NAME = 'w-tree'
+    TEMPLATE = """
     <ul class='widget w-tree'>
     <li class='widget w-tree-child' tpl-for="child in root[children_attr]">
         <div class='widget w-tree-indented' tpl-style="{'padding-left':depth*indent+'em'}">

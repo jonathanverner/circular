@@ -15,6 +15,7 @@ from .tag import TagPlugin
 from circular.utils.logger import Logger
 logger = Logger(__name__)
 
+
 class For(TagPlugin):
     """
         The template plugin `For` is used to generate a list of DOM elements.
@@ -51,24 +52,24 @@ class For(TagPlugin):
     """
     SPEC_RE = re.compile('^\s*(?P<loop_var>[^ ]*)\s*in\s*(?P<sequence_exp>.*)$',re.IGNORECASE)
     COND_RE = re.compile('\s*if\s(?P<condition>.*)$',re.IGNORECASE)
-    PRIORITY = 1000 # The for plugin should be processed before all the others
+    PRIORITY = 1000  # The for plugin should be processed before all the others
 
-    def __init__(self,tpl_element,loop_spec=None):
+    def __init__(self, tpl_element, loop_spec=None):
         super().__init__(tpl_element)
-        if isinstance(tpl_element,For):
+        if isinstance(tpl_element, For):
             self._var = tpl_element._var
             self._cond = tpl_element._cond
             self._exp = tpl_element._exp.clone()
             self.children = []
             self.child_template = tpl_element.child_template.clone()
         else:
-            m=For.SPEC_RE.match(loop_spec)
+            m = For.SPEC_RE.match(loop_spec)
             if m is None:
-                raise Exception("Invalid loop specification: "+loop_spec)
+                raise Exception("Invalid loop specification: " + loop_spec)
             m = m.groupdict()
             self._var = m['loop_var']
             sequence_exp = m['sequence_exp']
-            self._exp,pos = parse(sequence_exp,trailing_garbage_ok=True)
+            self._exp, pos = parse(sequence_exp, trailing_garbage_ok=True)
             m = For.COND_RE.match(sequence_exp[pos:])
             if m:
                 self._cond = parse(m['condition'])
@@ -76,10 +77,10 @@ class For(TagPlugin):
                 self._cond = None
             self.children = []
             self.child_template = _compile(tpl_element)
-        self._exp.bind('change',self._self_change_chandler)
+        self._exp.bind('change', self._self_change_chandler)
 
     def _clear(self):
-        for (ch,elem) in self.children:
+        for (ch, elem) in self.children:
             ch.unbind()
         self.children = []
 
@@ -93,17 +94,17 @@ class For(TagPlugin):
             logger.exception(ex)
             logger.warn("Exception",ex,"when computing list",self._exp,"with context",self._ctx)
             lst = []
-            self._ex=ex
+            self._ex = ex
         ret = []
         for item in lst:
-            c=Context({self._var:item},base=self._ctx)
+            c = Context({self._var: item}, base=self._ctx)
             try:
                 if self._cond is None or self._cond.evalctx(c):
                     clone = self.child_template.clone()
                     elem = clone.bind_ctx(c)
-                    clone.bind('change',self._subtree_change_handler)
+                    clone.bind('change', self._subtree_change_handler)
                     ret.append(elem)
-                    self.children.append((clone,elem))
+                    self.children.append((clone, elem))
             except Exception as ex:
                 logger.exception(ex)
                 logger.warn("Exception",ex,"when evaluating condition",self._cond,"with context",c)
@@ -117,7 +118,7 @@ class For(TagPlugin):
             self._dirty_subtree = False
             ret = []
             have_new = False
-            for (ch,elem) in self.children:
+            for (ch, elem) in self.children:
                 new_elem = ch.update()
                 if new_elem is not None:
                     ret.append(new_elem)
@@ -128,9 +129,9 @@ class For(TagPlugin):
                 return ret
 
     def __repr__(self):
-        ret= "<For "+self._var+" in "+str(self._exp)
+        ret = "<For " + self._var + " in " + str(self._exp)
         if self._cond is not None:
-            ret += " if "+self._cond
+            ret += " if " + self._cond
         ret += ">"
         return ret
 
