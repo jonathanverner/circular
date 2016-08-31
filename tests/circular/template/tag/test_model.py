@@ -4,6 +4,9 @@ from tests.brython.browser import document
 from src.circular.template.context import Context
 from src.circular.template.tpl import Template
 
+def setup_function(func):
+    document._reset()
+
 def test_model_plugin():
     div_elem = MockElement('div',id='test')
     text_elem = MockElement('#text',id='text')

@@ -1,4 +1,4 @@
-from .html import MockElement
+from .html import MockElement, MockDomElt
 
 class body(MockElement):
     def __init__(self):
@@ -9,6 +9,13 @@ class body(MockElement):
             return self
         else:
             return self._findChild(id)
+
+    def _reset(self):
+        self.attributes.clear()
+        self.children = []
+        self.parent = None
+        self.elt = MockDomElt(self)
+        self.text = ''
 
 document = body()
 
