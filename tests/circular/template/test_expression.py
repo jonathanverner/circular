@@ -396,6 +396,36 @@ def test_is_ident():
     assert ast.is_assignable() == True
 
 
+class TestCall(object):
+
+    def setup_method(self,method):
+        self.called = False
+        self.ctx = Context()
+
+    def test_call(self):
+        self.obj = None
+        self.event = None
+
+        def handler(x,event):
+            self.obj = x
+            self.event = event
+            self.called = True
+
+        self.ctx.handler = handler
+        self.ctx.ch = 10
+        ast = exp.parse("handler(ch)")
+        ast.bind_ctx(self.ctx)
+        assert self.called is False
+        ast.call(event='Event')
+        assert self.obj == 10
+        assert self.event == 'Event'
+        assert self.called is True
+        self.called = False
+
+        a = ast.clone()
+        assert a.is_function_call()
+        assert self.called == False
+
 def test_eval_assignment():
     ctx = Context()
 

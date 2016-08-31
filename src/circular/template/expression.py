@@ -976,7 +976,9 @@ class OpNode(ExpNode):
         if self._opstr != '()':
             raise Exception("Calling "+repr(self)+" does not make sense.")
         func = self._larg.eval()
-        args,kwargs = self._rarg.eval()
+        a,k = self._rarg.eval()
+        args = a.copy()
+        kwargs = k.copy()
         args.extend(inject_args)
         kwargs.update(inject_kwargs)
         return func(*args,**kwargs)
