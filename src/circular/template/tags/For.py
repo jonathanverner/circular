@@ -1,19 +1,25 @@
+"""
+    Provides the For template plugin for looping constructs.
+"""
 import re
+
+
 
 try:
     from ..tpl import _compile, register_plugin
     from ..expression import parse
     from ..context import Context
+    from ...utils.logger import Logger
 except:
     from circular.template.tpl import _compile, register_plugin
     from circular.template.expression import parse
     from circular.template.context import Context
+    from circular.utils.logger import Logger
+
+logger = Logger(__name__)
 
 
 from .tag import TagPlugin
-
-from circular.utils.logger import Logger
-logger = Logger(__name__)
 
 
 class For(TagPlugin):
@@ -50,8 +56,8 @@ class For(TagPlugin):
             <li>4</li>
         ```
     """
-    SPEC_RE = re.compile('^\s*(?P<loop_var>[^ ]*)\s*in\s*(?P<sequence_exp>.*)$',re.IGNORECASE)
-    COND_RE = re.compile('\s*if\s(?P<condition>.*)$',re.IGNORECASE)
+    SPEC_RE = re.compile(r'^\s*(?P<loop_var>[^ ]*)\s*in\s*(?P<sequence_exp>.*)$',re.IGNORECASE)
+    COND_RE = re.compile(r'\s*if\s(?P<condition>.*)$',re.IGNORECASE)
     PRIORITY = 1000  # The for plugin should be processed before all the others
 
     def __init__(self, tpl_element, loop_spec=None):
@@ -63,16 +69,16 @@ class For(TagPlugin):
             self.children = []
             self.child_template = tpl_element.child_template.clone()
         else:
-            m = For.SPEC_RE.match(loop_spec)
-            if m is None:
+            match = For.SPEC_RE.match(loop_spec)
+            if match is None:
                 raise Exception("Invalid loop specification: " + loop_spec)
-            m = m.groupdict()
-            self._var = m['loop_var']
-            sequence_exp = m['sequence_exp']
+            match = match.groupdict()
+            self._var = match['loop_var']
+            sequence_exp = match['sequence_exp']
             self._exp, pos = parse(sequence_exp, trailing_garbage_ok=True)
-            m = For.COND_RE.match(sequence_exp[pos:])
-            if m:
-                self._cond = parse(m['condition'])
+            match = For.COND_RE.match(sequence_exp[pos:])
+            if match:
+                self._cond = parse(match['condition'])
             else:
                 self._cond = None
             self.children = []
@@ -80,8 +86,8 @@ class For(TagPlugin):
         self._exp.bind('change', self._self_change_chandler)
 
     def _clear(self):
-        for (ch, elem) in self.children:
-            ch.unbind()
+        for (child, elem) in self.children:
+            child.unbind()
         self.children = []
 
     def bind_ctx(self, ctx):
@@ -90,25 +96,23 @@ class For(TagPlugin):
         self._exp.bind_ctx(self._ctx)
         try:
             lst = self._exp.eval()
-        except Exception as ex:
-            logger.exception(ex)
-            logger.warn("Exception",ex,"when computing list",self._exp,"with context",self._ctx)
+        except Exception as exc:
+            logger.exception(exc)
+            logger.warn("Exception", exc, "when computing list", self._exp, "with context", self._ctx)
             lst = []
-            self._ex = ex
         ret = []
         for item in lst:
-            c = Context({self._var: item}, base=self._ctx)
+            item_ctx = Context({self._var: item}, base=self._ctx)
             try:
-                if self._cond is None or self._cond.evalctx(c):
+                if self._cond is None or self._cond.evalctx(item_ctx):
                     clone = self.child_template.clone()
-                    elem = clone.bind_ctx(c)
+                    elem = clone.bind_ctx(item_ctx)
                     clone.bind('change', self._subtree_change_handler)
                     ret.append(elem)
                     self.children.append((clone, elem))
-            except Exception as ex:
-                logger.exception(ex)
-                logger.warn("Exception",ex,"when evaluating condition",self._cond,"with context",c)
-                self._ex=ex
+            except Exception as exc:
+                logger.exception(exc)
+                logger.warn("Exception", exc, "when evaluating condition", self._cond, "with context", item_ctx)
         return ret
 
     def update(self):

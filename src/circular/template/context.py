@@ -1,15 +1,50 @@
+"""
+    The context Module provides the Context class used for variable lookup
+    in expressions, templates etc.
+"""
 from .observer import ListProxy, DictProxy
 
 
 class Context(object):
-    """ Class used for looking up identifiers when evaluating an expression. """
+    """
+        Class used for looking up identifiers when evaluating an expression.
+        Access to the variables is via attributes, e.g.:
+
+        ```
+            ctx = Context()
+            ctx.a = 20
+            ctx.l = [1,2,3]
+        ```
+
+        The class also supports inheritance (nested scopes) via the base
+        attribute passed to init:
+
+        ```
+            ctx = Context()
+            ctx.a = 20
+
+            ch = Context(base=ctx)
+            assert ch.a == 20, "Child has access to base scope"
+
+            ch.a = 30
+            assert ctx.a == 20, "Child cannot modify base scope"
+            assert ch.a == 30, "Child cannot modify base scope"
+        ```
+
+        WARNING: Only use it to store variables not starting with ``_``.
+    """
 
     def __init__(self, dct=None, base=None):
+        """
+            The optional parameter ``dct`` is used to initialize the context.
+            The optional parameter ``base`` makes this context inherit all
+            properties of the base context.
+        """
         self._base = base or {}
         if dct is None:
             self._dct = {}
         else:
-            self._dct = dct
+            self._dct = dct.copy()
         self._saved = {}
 
     def reset(self, dct):

@@ -1,9 +1,10 @@
-from browser import DOMNode, window
 import sys
 import traceback
 
+from browser import window
+
 from .utils.logger import Logger
-logger = Logger(__name__)
+logger = Logger(__name__) # pylint: disable=C0103
 
 
 class Console:
@@ -69,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
         self.history = []
         self.current = 0
         self._status = "main"  # or "block" if typing inside a block
+        self.currentLine = ""
 
         # execution namespace
         self.editor_ns = {
@@ -78,9 +80,9 @@ POSSIBILITY OF SUCH DAMAGE.
             '__name__': '__console__',
         }
 
-        self._elem.bind('keypress', self.myKeyPress)
-        self._elem.bind('keydown', self.myKeyDown)
-        self._elem.bind('click', self.cursorToEnd)
+        self._elem.bind('keypress', self.my_key_press)
+        self._elem.bind('keydown', self.my_key_down)
+        self._elem.bind('click', self.cursor_to_end)
         v = sys.implementation.version
         self._elem.value = "Brython %s.%s.%s on %s %s\n%s\n>>> " % (v[0],
                                                                     v[1],
@@ -89,12 +91,12 @@ POSSIBILITY OF SUCH DAMAGE.
                                                                     window.navigator.appVersion,
                                                                     'Type "copyright()", "credits()" or "license()" for more information.')
         self._elem.focus()
-        self.cursorToEnd()
+        self.cursor_to_end()
 
     def add_to_ns(self, key, value):
         self.editor_ns[key] = value
 
-    def _redirectOut(self):
+    def _redirect_out(self):
         if self._redirected:
             sys.__console__ = False
             sys.stdout = self._oldstdout
@@ -120,7 +122,7 @@ POSSIBILITY OF SUCH DAMAGE.
     def write(self, data):
         self._elem.value += str(data)
 
-    def cursorToEnd(self, *args):
+    def cursor_to_end(self, *args):
         pos = len(self._elem.value)
         self._elem.setSelectionRange(pos, pos)
         self._elem.scrollTop = self._elem.scrollHeight
@@ -133,7 +135,7 @@ POSSIBILITY OF SUCH DAMAGE.
             sel -= len(line) + 1
         return sel
 
-    def myKeyPress(self, event):
+    def my_key_press(self, event):
         if event.keyCode == 9:  # tab key
             event.preventDefault()
             self._elem.value += "    "
@@ -155,7 +157,7 @@ POSSIBILITY OF SUCH DAMAGE.
             self.current = len(self.history)
             if self._status == "main" or self._status == "3string":
                 try:
-                    self._redirectOut()
+                    self._redirect_out()
                     _ = self.editor_ns['_'] = eval(self.currentLine, self.editor_ns)
                     if _ is not None:
                         self.write(repr(_) + '\n')
@@ -171,12 +173,12 @@ POSSIBILITY OF SUCH DAMAGE.
                         self._status = "3string"
                     elif str(msg) == 'eval() argument must be an expression':
                         try:
-                            self._redirectOut()
+                            self._redirect_out()
                             exec(self.currentLine, self.editor_ns)
                         except:
                             traceback.print_exc(self)
                         finally:
-                            self._redirectOut()
+                            self._redirect_out()
                         self._elem.value += '>>> '
                         self._status = "main"
                     elif str(msg) == 'decorator expects function':
@@ -191,7 +193,7 @@ POSSIBILITY OF SUCH DAMAGE.
                     self._elem.value += '>>> '
                     self._status = "main"
                 finally:
-                    self._redirectOut()
+                    self._redirect_out()
             elif self.currentLine == "":  # end of block
                 block = src[src.rfind('>>>') + 4:].splitlines()
                 block = [block[0]] + [b[4:] for b in block[1:]]
@@ -199,21 +201,21 @@ POSSIBILITY OF SUCH DAMAGE.
                 # status must be set before executing code in globals()
                 self._status = "main"
                 try:
-                    self._redirectOut()
-                    _ = exec(block_src, self.editor_ns)
+                    self._redirect_out()
+                    #_ = exec(block_src, self.editor_ns)
                     if _ is not None:
                         print(repr(_))
                 except:
                     traceback.print_exc(self)
                 finally:
-                    self._redirectOut()
+                    self._redirect_out()
                 self._elem.value += '>>> '
             else:
                 self._elem.value += '... '
-            self.cursorToEnd()
+            self.cursor_to_end()
             event.preventDefault()
 
-    def myKeyDown(self, event):
+    def my_key_down(self, event):
         if event.keyCode == 37:  # left arrow
             sel = self.get_col(self._elem)
             if sel < 5:

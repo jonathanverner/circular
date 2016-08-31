@@ -1,3 +1,7 @@
+"""
+    This module provides the Template class for creating data-bound
+    templates.
+"""
 from browser import timer
 
 try:
@@ -7,6 +11,16 @@ except:
 
 
 class PrefixLookupDict(dict):
+    """
+        Helper class for looking up data allowing a single data item
+        to have variant keys. The implementation works by first
+        converting the key to a canonical form and only then doing
+        the lookup. The canonical form is derived as follows:
+
+          -- strip any prefix (set via the :func: ``set_prefix`` method)
+          -- remove any '-' and '_'
+          -- convert the key to upper case
+    """
 
     def __init__(self, init=None):
         super().__init__()
@@ -54,16 +68,50 @@ PLUGINS = PrefixLookupDict()
 
 
 def _build_kwargs(element, plugin):
-    ld = PrefixLookupDict(plugin['args'])
+    """
+        Helper function which removes all attributes of element
+        which are consumed by the plugin as parameters. It
+        returns them (with their values) as a dict.
+    """
+    lookup_table = PrefixLookupDict(plugin['args'])
     kwargs = {}
     for attr in element.attributes:
-        if attr.name in ld:
-            kwargs[ld[attr.name]] = attr.value
+        if attr.name in lookup_table:
+            kwargs[lookup_table[attr.name]] = attr.value
             element.removeAttribute(attr.name)
     return kwargs
 
 
 def _compile(tpl_element):
+    """
+        A function used internally by the Template class and plugins
+        to recursively parse a dom-tree into a template. The argument
+        is a tpl_element. It returns an instance of the ``TagPlugin``
+        class representing the root of the template at ``tpl_element``.
+
+        The function works as follows:
+
+            1. If the element is a text node, initialize the ``TextPlugin``
+            (which handles ``{{ name }}`` type constructs)
+
+            2. Otherwise, if this is the first time the element is
+            seen, build a list of all attribute plugins which need to be applied
+            and save it to the element as a private attribute ``_plugins``
+
+            3. Next order the attribute plugins by priority and initialize
+            the first one (it is expected, that the plugin will recursively
+            call _compile on the element thus allowing the other plugins to
+            be initialized)
+
+            4. Next handle attributes with interpolated values (e.g. ``id="{{ dom_id }}``)
+            via the ``InterpolatedAttrsPlugin``
+
+            5. Finally, initialize the ``GenericTag`` plugin which takes care
+            of calling the ``_compile`` function recursively on the child elements.
+            (Note that plugins may choose to ignore the children (or do something else with them)
+            by not calling the _compile function)
+
+    """
     if tpl_element.nodeName == '#text':
         # Interpolated text node plugin
         return TextPlugin(tpl_element)
@@ -82,8 +130,8 @@ def _compile(tpl_element):
         # Order the plugins by priority
         plugin_metas.sort(key=lambda x: x[1]['priority'])
         plugins = []
-        for (arg, p) in plugin_metas:
-            plugins.append((p, [arg], _build_kwargs(tpl_element, p)))
+        for (arg, plugin) in plugin_metas:
+            plugins.append((plugin, [arg], _build_kwargs(tpl_element, plugin)))
 
         if tpl_element.nodeName in PLUGINS:
             tplug = PLUGINS[tpl_element.nodeName]
@@ -96,7 +144,7 @@ def _compile(tpl_element):
     # Now we initialize the first plugin, if any
     if len(plugins) > 0:
         plug_meta, args, kwargs = plugins.pop()
-        return p['class'](tpl_element, *args, **kwargs)
+        return plugin['class'](tpl_element, *args, **kwargs)
 
     # If there are any attributes left, we initialize the
     # InterpolatedAttrsPlugin
@@ -134,7 +182,7 @@ def set_prefix(prefix):
     PLUGINS.set_prefix(prefix)
 
 
-class Template:
+class Template(EventMixin):
     """
         The template class is the basic class used for data-binding functionality.
         Its constructor takes a :class:`DOMNode` element (e.g. ``doc['element_id']``) and

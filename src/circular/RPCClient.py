@@ -3,7 +3,7 @@ from browser import websocket
 from .utils.async import Promise, async, Return
 from .utils.logger import Logger
 
-logger = Logger(__name__)
+logger = Logger(__name__) # pylint: disable=C0103
 
 
 class SocketFactory:
@@ -35,13 +35,13 @@ class RPCClientFactory:
     def get_client(cls, service_name, url=None):
         if url is None:
             url = RPCClientFactory.DEFAULT_URL
-        h = cls._hash(url, service_name)
-        if h not in cls.CLIENTS:
-            cls.CLIENTS[h] = RPCClient(url, service_name)
-        elif cls.CLIENTS[h].status > RPCClient.STATUS_READY:
-            del cls.CLIENTS[h]
-            cls.CLIENTS[h] = RPCClient(url, service_name)
-        client = cls.CLIENTS[h]
+        hash = cls._hash(url, service_name)
+        if hash not in cls.CLIENTS:
+            cls.CLIENTS[hash] = RPCClient(url, service_name)
+        elif cls.CLIENTS[hash].status > RPCClient.STATUS_READY:
+            del cls.CLIENTS[hash]
+            cls.CLIENTS[hash] = RPCClient(url, service_name)
+        client = cls.CLIENTS[hash]
         ret = Promise()
         if client.status < RPCClient.STATUS_READY:
             def __onr(svc):
@@ -80,8 +80,8 @@ class RPCClient:
             svc_name = self._service_name
         logger.debug("Generating method ", method_name, " of ", svc_name)
 
-        def remote_call(*args,**kwargs):
-            logger.debug("Calling ",method_name, "self:",self,"*args:",args, "**kwargs",kwargs)
+        def remote_call(*args, **kwargs):
+            logger.debug("Calling ", method_name, "self:", self, "*args:", args, "**kwargs", kwargs)
 
             if not self.status == RPCClient.STATUS_READY:
                 if (not self.status == RPCClient.STATUS_QUERYING_SERVICE) or (
@@ -152,8 +152,8 @@ class RPCClient:
         return rt
 
     @async
-    def _on_open(self,evt=None):
-        logger.debug("Web Socket Open, querying service", self._service_name, "STATUS:",self.status)
+    def _on_open(self, evt=None):
+        logger.debug("Web Socket Open, querying service", self._service_name, "STATUS:", self.status)
         self._status = RPCClient.STATUS_QUERYING_SERVICE
         logger.debug("Transitioning to status:", self.status)
         self._methods = yield self.query_service(self._service_name)

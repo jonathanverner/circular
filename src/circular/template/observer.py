@@ -1,4 +1,29 @@
-from circular.utils.events import EventMixin, add_event_mixin
+"""
+    Module providing observables to the template machinery. The main
+    method is the :func: ``observe`` method which can be used to observe
+    user-defined objects and get notifications about changes to the
+    objects. One typically uses it as follows:
+
+    ```
+         def change_handler(ev):
+             print("Object changed")
+             if 'value' in ev.data:
+               print("New value:",value)
+
+         a = ListProxy([1,2,3])
+         obs = observe(a)
+         obs.bind('change',change_handler)
+         obs.append("10")
+    ```
+
+    Where the last line will result in a call to the change_handler.
+
+    WARNING: Only user-defined classes may be observed, not plain lists, dicts, etc.
+    The module provides simple wrappers around ``dict`` and ``list`` which
+    can be observed.
+
+"""
+from circular.utils.events import EventMixin
 
 
 def extend_instance(obj, cls):
@@ -193,32 +218,50 @@ class ArrayMixin(object):
 class ListProxy(list):
 
     def __init__(self, lst):
-        me = []
-        for i in lst:
-            if isinstance(i, list):
-                me.append(ListProxy(i))
-            elif isinstance(i, dict):
-                me.append(DictProxy(i))
+        this = []
+        for item in lst:
+            if isinstance(item, list):
+                this.append(ListProxy(item))
+            elif isinstance(item, dict):
+                this.append(DictProxy(item))
             else:
-                me.append(i)
-        super().__init__(me)
+                this.append(item)
+        super().__init__(this)
 
 
 class DictProxy(dict):
 
     def __init__(self, dct):
-        me = {}
-        for k, v in dct.items():
-            if isinstance(v, list):
-                me[k] = ListProxy(v)
-            elif isinstance(v, dict):
-                me[k] = DictProxy(v)
+        this = {}
+        for key, val in dct.items():
+            if isinstance(val, list):
+                this[key] = ListProxy(val)
+            elif isinstance(val, dict):
+                this[key] = DictProxy(val)
             else:
-                me[k] = v
-        super().__init__(me)
+                this[key] = val
+        super().__init__(this)
 
 
 def observe(obj, observer=None, ignore_errors=False):
+    """
+        Returns an observer object monitoring changes to ``obj``.
+
+        One can specify any instance of EventMixin as the ``observer``
+        parameter. In this case any change events will be emitted
+        (forwarded) by the provided observer.
+
+        If ``ignore_errors`` is False, the method may throw, e.g. if
+        the user tries to observe a built in type. Otherwise it will
+        just return None in case of error.
+
+        WARNING: Only instances of user-defined classes can be
+        observed. If you need to observe a ``list`` or a ``dict``
+        wrap them in a ``ListProxy`` or ``DictProxy``. Or, alternatively,
+        consider using the Context class which automatically and
+        recursively wraps any ``list`` and ``Dict`` variables which
+        are assigned to it.
+    """
     if not hasattr(obj, '_obs____'):
         if type(obj) in [str, int, dict, list, tuple, set, type(None), bool]:
             if not ignore_errors:
@@ -231,9 +274,9 @@ def observe(obj, observer=None, ignore_errors=False):
             else:
                 extend_instance(obj, ObjMixin)
             obj._create_observer()
-        except Exception as e:
+        except Exception as exc:
             if not ignore_errors:
-                raise Exception("Cannot observe (is obj a primitive type?):"+str(e))
+                raise Exception("Cannot observe (is obj a primitive type?):"+str(exc))
             else:
                 return None
     if observer is not None:

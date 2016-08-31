@@ -1,3 +1,6 @@
+"""
+    Provides the base class ``TagPlugin`` for template plugins
+"""
 try:
     from ...utils.events import EventMixin
 except:
@@ -48,6 +51,8 @@ class TagPlugin(EventMixin):
             self._orig_clone = tpl_element.clone()
         self._dirty_self = True
         self._dirty_subtree = True
+        self._bound = False
+        self._ctx = None
 
     def bind_ctx(self, ctx):
         """ Binds a context to the node and returns a DOMNode

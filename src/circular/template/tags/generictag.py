@@ -1,4 +1,14 @@
+"""
+    Provides the ``GenericTag`` plugin class which corresponds
+    to a normal non-plugin based template node. The plugin
+    calls ``_compile`` on the child elements and attaches them as
+    child template nodes to itself.
+"""
+
 from browser import html
+
+from circular.utils.logger import Logger
+logger = Logger(__name__) # pylint: disable=C0103
 
 try:
     from ..tpl import _compile
@@ -6,10 +16,6 @@ except:
     from circular.template.tpl import _compile
 
 from .tag import TagPlugin
-
-
-from circular.utils.logger import Logger
-logger = Logger(__name__)
 
 
 class GenericTagPlugin(TagPlugin):
@@ -27,16 +33,16 @@ class GenericTagPlugin(TagPlugin):
         if isinstance(tpl_element, GenericTagPlugin):
             self.element = tpl_element.element.clone()
             self.element.clear()
-            for ch in tpl_element.children:
-                node = ch.clone()
+            for child in tpl_element.children:
+                node = child.clone()
                 node.bind('change', self._subtree_change_handler)
                 self.children.append(node)
                 self.child_elements[node] = [self._fence(node)]
         else:
             self.element = tpl_element.clone()
             self.element.clear()
-            for ch in tpl_element.children:
-                node = _compile(ch)
+            for child in tpl_element.children:
+                node = _compile(child)
                 node.bind('change', self._subtree_change_handler)
                 self.children.append(node)
                 self.child_elements[node] = [self._fence(node)]
@@ -61,17 +67,17 @@ class GenericTagPlugin(TagPlugin):
             self.element <= self.child_elements[ch]
         return self.element
 
-    def replace(self, ch, elems):
-        fence = self.child_elements[ch][-1]
-        for old_el in self.child_elements[ch][:-1]:
+    def replace(self, child, elems):
+        fence = self.child_elements[child][-1]
+        for old_el in self.child_elements[child][:-1]:
             old_el.__del__()
         if isinstance(elems, list):
-            for el in elems:
-                self.element.insertBefore(el, fence)
-            self.child_elements[ch] = elems + [fence]
+            for elt in elems:
+                self.element.insertBefore(elt, fence)
+            self.child_elements[child] = elems + [fence]
         else:
             self.element.insertBefore(elems, fence)
-            self.child_elements[ch] = [elems, fence]
+            self.child_elements[child] = [elems, fence]
 
     def __repr__(self):
         return "<Generic " + self.element.tagName + ">"

@@ -1,3 +1,5 @@
+from browser import timer
+
 try:
     from ..expression import parse
     from ..tpl import _compile, register_plugin

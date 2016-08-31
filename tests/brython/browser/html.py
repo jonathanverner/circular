@@ -186,3 +186,7 @@ class COMMENT(MockElement):
     def __init__(self, text=None,**kwargs):
         super().__init__('comment',**kwargs)
         self.text = text
+
+class SPAN(MockElement):
+    def __init__(self, **kwargs):
+        super().__init__('span',**kwargs)

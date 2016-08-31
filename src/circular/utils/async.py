@@ -1,7 +1,7 @@
 from browser import ajax
 
 from .logger import Logger
-from .events import EventMixin
+from .events import EventMixin, Event
 from .decorator import decorator, func_name
 logger = Logger(__name__)
 

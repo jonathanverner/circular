@@ -3,8 +3,7 @@ try:
 except:
     from circular.utils.events import EventMixin
 
-from .expression import parse, parse_interpolated_str
-from .context import Context
+from .expression import parse_interpolated_str
 
 
 class InterpolatedStr(EventMixin):
@@ -14,14 +13,14 @@ class InterpolatedStr(EventMixin):
         if isinstance(string, InterpolatedStr):
             self._src = string._src
             self.asts = []
-            for a in string.asts:
-                self.asts.append(a.clone())
+            for ast in string.asts:
+                self.asts.append(ast.clone())
         else:
             self._src = string
             self.asts = parse_interpolated_str(string)
 
         for i in range(len(self.asts)):
-            self.asts[i].bind('change',lambda ev:self._change_chandler(ev,i))
+            self.asts[i].bind('change', lambda event:self._change_chandler(event,i))
 
         self._dirty = True
         self._dirty_vals = True

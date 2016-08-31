@@ -10,12 +10,12 @@
       - dict constants are not supported
 """
 
-ET_EXPRESSION = 0
-ET_INTERPOLATED_STRING = 1
-
 from circular.utils.events import EventMixin
 
 from .observer import observe
+
+ET_EXPRESSION = 0
+ET_INTERPOLATED_STRING = 1
 
 T_SPACE = 0
 T_NUMBER = 1            # A number immediately preceded by '-' is a negative number, the '-' is not taken as an operator, so 10-11 is not a valid expression
@@ -62,29 +62,8 @@ OP_PRIORITY = {
     '.':5      # Attribute access has highest priority (e.g. a.c**2 is not a.(c**2), and a.func(b) is not a.(func(b)))
 }
 
-# match_token_res = [
-#(T_SPACE,re.compile('\s.*')),
-#(T_NUMBER,re.compile('[0-9].*')),
-#(T_LBRACKET,re.compile('\[.*')),
-#(T_RBRACKET,re.compile('\].*')),
-#(T_LPAREN,re.compile('\(.*')),
-#(T_RPAREN,re.compile('\).*')),
-#(T_LBRACE,re.compile('{')),
-#(T_RBRACE,re.compile('}')),
-#(T_DOT,re.compile('\..*')),
-#(T_COMMA,re.compile(',.*')),
-#(T_COLON,re.compile(':.*')),
-#(T_EQUAL,re.compile('=[^=].*')),
-#(T_OPERATOR,re.compile('([-+*/<>%].*)|(==.*)|(!=.*)|(<=.*)|(>=.*)|(or[^a-z_$])|(and[^a-z_$])|(is[^a-z_$])|(not[^a-z_$])')),
-#(T_STRING,re.compile('["\'].*')),
-#(T_KEYWORD,re.compile('(for[^a-z_$])|(if[^a-z_$].*)|(in[^a-z_$].*)')),
-#(T_IDENTIFIER,re.compile('[a-z_$].*',re.IGNORECASE)),
-#]
-
-
 def token_type(start_chars):
-    """ Identifies the next token type based on the
-        next four characters """
+    """ Identifies the next token type based on the next four characters """
     first_char = start_chars[0]
     if first_char == ' ' or first_char == "\t" or first_char == "\n":
         return T_SPACE
@@ -110,41 +89,32 @@ def token_type(start_chars):
         return T_EQUAL
     elif first_char == "'" or first_char == '"':
         return T_STRING
-    fo = ord(first_char)
-    if fo >= 48 and fo <= 57:
+    first_ord = ord(first_char)
+    if first_ord >= 48 and first_ord <= 57:
         return T_NUMBER
-    l = len(start_chars)
-    if (l >= 2):
+    len_start = len(start_chars)
+    if len_start >= 2:
         twochars = start_chars[:2]
         if first_char in "-+*/<>%" or twochars in ['==', '!=', '<=', '>=']:
             return T_OPERATOR
-        if l >= 3:
-            o = ord(start_chars[2])
+        if len_start >= 3:
+            char_ord = ord(start_chars[2])
             if (twochars == 'or' or twochars == 'is') and (
-                    o > 122 or o < 65 or o == 91):
+                    char_ord > 122 or char_ord < 65 or char_ord == 91):
                 return T_OPERATOR
-            elif (twochars == 'in' or twochars == 'if') and (o > 122 or o < 65 or o == 91):
+            elif (twochars == 'in' or twochars == 'if') and (char_ord > 122 or char_ord < 65 or char_ord == 91):
                 return T_KEYWORD
-            if (l >= 4):
-                o = ord(start_chars[3])
+            if len_start >= 4:
+                char_ord = ord(start_chars[3])
                 threechars = start_chars[:3]
-                if (threechars == 'and' or threechars == 'not') and (o > 122 or o < 65 or o == 91):
+                if (threechars == 'and' or threechars == 'not') and (char_ord > 122 or char_ord < 65 or char_ord == 91):
                     return T_OPERATOR
-                elif (threechars == 'for') and (o > 122 or o < 65 or o == 91):
+                elif (threechars == 'for') and (char_ord > 122 or char_ord < 65 or char_ord == 91):
                     return T_KEYWORD
-    if (fo >= 65 and fo <= 90) or (fo >= 97 and fo <=
-                                   122) or first_char == '_' or first_char == '$':
+    if (first_ord >= 65 and first_ord <= 90) or (first_ord >= 97 and first_ord <= 122) or first_char == '_' or first_char == '$':
         return T_IDENTIFIER
     else:
         return T_UNKNOWN
-
-    # Turns out that the following was too slow in javascript
-    # due to using regular expressions
-    #
-    # for tp,pat in match_token_res:
-    #    if pat.match(start_chars):
-    #            return tp
-
 
 def parse_number(expr, pos):
     """ Parses a number """
@@ -157,7 +127,8 @@ def parse_number(expr, pos):
     pos = pos + 1
     decimal_part = True
     div = 10
-    while pos < len(expr) and ((expr[pos] in ['0','1','2','3','4','5','6','7','8','9']) or ( decimal_part and expr[pos]=='.' )):
+    while pos < len(expr) and ((expr[pos] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']) or (
+                               decimal_part and expr[pos]=='.' )):
         if expr[pos] == '.':
             decimal_part = False
         else:
@@ -205,20 +176,16 @@ def parse_string(expr, pos):
         raise Exception("String is missing end quote: " + end_quote)
     return ret, pos + 1
 
-#IDENTIFIER_INNERCHAR_RE = re.compile('[a-z_$0-9]',re.IGNORECASE)
-
 
 def parse_identifier(expr, pos):
-    """ Parses an identifier. """
+    """
+        Parses an identifier. Which should match /[a-z_$0-9]/i
+    """
     ret = expr[pos]
     pos = pos + 1
-    # while pos < len(expr) and IDENTIFIER_INNERCHAR_RE.match(expr[pos]):
     while pos < len(expr):
         o = ord(expr[pos])
-        if not (
-            (o >= 48 and o <= 57) or (
-                o >= 65 and o <= 90) or (
-                o >= 97 and o <= 122) or o == 36 or o == 95):
+        if not ( (o >= 48 and o <= 57) or (o >= 65 and o <= 90) or (o >= 97 and o <= 122) or o == 36 or o == 95 ):
             break
         ret += expr[pos]
         pos = pos + 1
@@ -246,7 +213,7 @@ def tokenize(expr):
             yield (T_IDENTIFIER, identifier, pos)
         elif tokentype == T_OPERATOR:
             if expr[pos] == '*' and pos+1 < len(expr) and expr[pos+1] == '*':
-                yield (T_OPERATOR,'**',pos+2)
+                yield (T_OPERATOR, '**', pos+2)
                 pos = pos + 2
             elif expr[pos] == '/' and pos + 1 < len(expr) and expr[pos + 1] == '/':
                 yield (T_OPERATOR, '//', pos + 2)
@@ -267,21 +234,20 @@ def tokenize(expr):
                 yield (T_OPERATOR, 'or', pos + 2)
                 pos = pos + 2
             elif expr[pos] == 'i' and expr[pos + 1] == 's':
-                p = pos + 2
-                l = len(expr)
-                while p < l and expr[p] == ' ' or expr[
-                        p] == '\t' or expr[p] == '\n':
-                    p += 1
-                if expr[p:p + 3] == 'not':
-                    if p + 3 > l:
-                        yield (T_OPERATOR, 'is not', p + 3)
-                        pos = p + 3
+                npos = pos + 2
+                len_expr = len(expr)
+                while npos < len_expr and expr[npos] == ' ' or expr[npos] == '\t' or expr[npos] == '\n':
+                    npos += 1
+                if expr[npos:npos + 3] == 'not':
+                    if npos + 3 > len_expr:
+                        yield (T_OPERATOR, 'is not', npos + 3)
+                        pos = npos + 3
                     else:
-                        o = ord(expr[p + 3])
-                        if ((o < 48 or o > 57) and (o < 65 or o > 90)
-                                and (o < 97 or o > 122)):
-                            yield (T_OPERATOR, 'is not', p + 3)
-                            pos = p + 3
+                        char_ord = ord(expr[npos + 3])
+                        if ((char_ord < 48 or char_ord > 57) and (char_ord < 65 or char_ord > 90)
+                                and (char_ord < 97 or char_ord > 122)):
+                            yield (T_OPERATOR, 'is not', npos + 3)
+                            pos = npos + 3
                         else:
                             yield (T_OPERATOR, 'is', pos + 2)
                             pos = pos + 2
@@ -298,13 +264,6 @@ def tokenize(expr):
                 yield (T_OPERATOR, expr[pos], pos + 1)
                 pos = pos + 1
         elif tokentype == T_KEYWORD:
-            # KEYWORD_RE = re.compile('(for)[^a-z_$].*|(if)[^a-z_$].*|(in)[^a-z_$].*')
-            # Regular expressions are too slow and here they are overkill
-            #
-            # match = KEYWORD_RE.match(expr[pos:pos+4])
-            # kwd = match.groups()[0] or match.groups()[1] or match.groups()[2]
-            # yield (tokentype,kwd,pos+len(kwd))
-            # pos = pos + len(kwd)
             if expr[pos] == 'f':
                 yield (tokentype, 'for', pos + 3)
                 pos += 3
@@ -314,7 +273,6 @@ def tokenize(expr):
             else:
                 yield (tokentype, 'in', pos + 2)
                 pos += 2
-
         else:
             yield (tokentype, expr[pos], pos + 1)
             pos = pos + 1
@@ -331,6 +289,9 @@ class ExpNode(EventMixin):
 
         # The cached value of the expression.
         self._cached_val = None
+
+        # The context to which the node is bound
+        self._ctx = None
 
         # If true, the cached_calue value of is possibly stale.
         # Note that the node should never set its dirty bit to
@@ -442,9 +403,9 @@ class ExpNode(EventMixin):
         """
             Returns true if the expression value can be assigned to.
         """
-        ret = isinstance(self,IdentNode) and not self._const
-        ret = ret or isinstance(self,AttrAccessNode)
-        ret = ret or isinstance(self,OpNode) and self._opstr == '[]' and isinstance(self._rarg,ListSliceNode) and not self._rarg._slice
+        ret = isinstance(self, IdentNode) and not self._const
+        ret = ret or isinstance(self, AttrAccessNode)
+        ret = ret or isinstance(self, OpNode) and self._opstr == '[]' and isinstance(self._rarg, ListSliceNode) and not self._rarg._slice
         return ret
 
     def _change_handler(self, event):
@@ -508,6 +469,8 @@ class IdentNode(ExpNode):
             self._cached_val = self.CONSTANTS[self._ident]
             self._defined = True
             self._dirty = False
+            self._value_observer = None
+            self._ctx_observer = None
         else:
             self._const = False
 
@@ -564,7 +527,7 @@ class IdentNode(ExpNode):
                 self._value_observer.unbind()
             if 'value' in event.data['key']:
                 self._cached_val = event.data['value']
-                self._value_observer=observe(self._cached_val,ignore_errors=True)
+                self._value_observer = observe(self._cached_val, ignore_errors=True)
                 if self._value_observer:
                     self._value_observer.bind('change', self._value_change)
                 self.defined = True
@@ -593,6 +556,9 @@ class IdentNode(ExpNode):
 
 
 class MultiChildNode(ExpNode):
+    """
+        Common base class for nodes which have multiple child nodes.
+    """
 
     def __init__(self, children):
         super().__init__()
@@ -600,9 +566,9 @@ class MultiChildNode(ExpNode):
         self._cached_vals = []
         self._dirty_children = True
         for ch_index in range(len(self._children)):
-            ch = self._children[ch_index]
-            if ch is not None:
-                ch.bind('change', lambda ev: self._child_changed(ev, ch_index))
+            child = self._children[ch_index]
+            if child is not None:
+                child.bind('change', lambda event: self._child_changed(event, ch_index))
 
     def clone(self):
         """
@@ -611,9 +577,9 @@ class MultiChildNode(ExpNode):
             children so that it can be used by subclasses.
         """
         clones = []
-        for ch in self._children:
-            if ch is not None:
-                clones.append(ch.clone())
+        for child in self._children:
+            if child is not None:
+                clones.append(child.clone())
             else:
                 clones.append(None)
         return clones
@@ -625,9 +591,9 @@ class MultiChildNode(ExpNode):
         if self._dirty_children or force_cache_refresh:
             self.defined = False
             self._cached_vals = []
-            for ch in self._children:
-                if ch is not None:
-                    self._cached_vals.append(ch.eval(force_cache_refresh=force_cache_refresh))
+            for child in self._children:
+                if child is not None:
+                    self._cached_vals.append(child.eval(force_cache_refresh=force_cache_refresh))
                 else:
                     self._cached_vals.append(None)
             self._dirty = False
@@ -639,17 +605,17 @@ class MultiChildNode(ExpNode):
 
     def evalctx(self, context):
         ret = []
-        for ch in self._children:
-            if ch is not None:
-                ret.append(ch.evalctx(context))
+        for child in self._children:
+            if child is not None:
+                ret.append(child.evalctx(context))
             else:
                 ret.append(None)
         return ret
 
     def bind_ctx(self, context):
-        for ch in self._children:
-            if ch is not None:
-                ch.bind_ctx(context)
+        for child in self._children:
+            if child is not None:
+                child.bind_ctx(context)
 
     def _child_changed(self, event, child_index):
         if self._dirty_children and self.defined:
@@ -682,28 +648,29 @@ class ListNode(MultiChildNode):
 
 
 class FuncArgsNode(MultiChildNode):
+    """ Node representing the arguments to a function """
 
     def __init__(self, args, kwargs):
         super().__init__(args)
         self._kwargs = kwargs
         self._cached_kwargs = {}
         self._dirty_kwargs = False
-        for (k, v) in self._kwargs.items():
-            v.bind('change', lambda ev: self._kwarg_change(ev, k))
+        for (arg, val) in self._kwargs.items():
+            val.bind('change', lambda event: self._kwarg_change(event, arg))
 
     def clone(self):
         cloned_args = super().clone()
         cloned_kwargs = {}
-        for (k, v) in self._kwargs.items():
-            cloned_kwargs[k] = v.clone()
+        for (arg, val) in self._kwargs.items():
+            cloned_kwargs[arg] = val.clone()
         return FuncArgsNode(cloned_args, cloned_kwargs)
 
     def eval(self, force_cache_refresh=False):
         args = super().eval(force_cache_refresh=force_cache_refresh)
         if self._dirty_kwargs or force_cache_refresh:
             self._cached_kwargs = {}
-            for (k, v) in self._kwargs.items():
-                self._cached_kwargs[k] = v.eval(
+            for (arg, val) in self._kwargs.items():
+                self._cached_kwargs[arg] = val.eval(
                     force_cache_refresh=force_cache_refresh)
         self._cached_val = args, self._cached_kwargs
         self.defined = True
@@ -714,8 +681,8 @@ class FuncArgsNode(MultiChildNode):
     def evalctx(self, context):
         args = super().evalctx(context)
         kwargs = {}
-        for (k, v) in self._kwargs.items():
-            kwargs[k] = v.evalctx(context)
+        for (arg, val) in self._kwargs.items():
+            kwargs[arg] = val.evalctx(context)
         return args, kwargs
 
     def bind_ctx(self, context):
@@ -723,11 +690,11 @@ class FuncArgsNode(MultiChildNode):
         for kw in self._kwargs.values():
             kw.bind_ctx(context)
 
-    def _kwarg_change(self, ev, k):
+    def _kwarg_change(self, event, arg):
         if self._dirty_kwargs and self.defined:
             return
-        if 'value' in ev.data:
-            self._cached_kwargs[k] = ev.data['value']
+        if 'value' in event.data:
+            self._cached_kwargs[arg] = event.data['value']
         else:
             self._dirty_kwargs = True
         if not self._dirty or not self.defined:
@@ -735,15 +702,16 @@ class FuncArgsNode(MultiChildNode):
             self.emit('change')
 
     def __repr__(self):
-        return ','.join([repr(ch) for ch in self._children] +
-                        [k + '=' + repr(v) for (k, v) in self._kwargs.items()])
+        return ','.join([repr(child) for child in self._children] +
+                        [arg + '=' + repr(val) for (arg, val) in self._kwargs.items()])
 
 
 class ListSliceNode(MultiChildNode):
+    """ Node representing a slice or an index """
 
-    def __init__(self, slice, start, end, step):
+    def __init__(self, is_slice, start, end, step):
         super().__init__([start, end, step])
-        self._slice = slice
+        self._slice = is_slice
 
     def clone(self):
         start_c, end_c, step_c = super().clone()
@@ -809,8 +777,8 @@ class AttrAccessNode(ExpNode):
             if self._observer:
                 self._observer.unbind()
             obj_val = self._obj.eval(force_cache_refresh=force_cache_refresh)
-            self._cached_val = getattr(obj_val,self._attr.name())
-            self._observer = observe(self._cached_val,self._change_attr_handler,ignore_errors=True)
+            self._cached_val = getattr(obj_val, self._attr.name())
+            self._observer = observe(self._cached_val, self._change_attr_handler, ignore_errors=True)
             self._dirty = False
             self.defined = True
         return self._cached_val
@@ -887,7 +855,7 @@ class ListComprNode(ExpNode):
             var_name = self._var.name()
             self._ctx._save(var_name)
             for elem in lst:
-                self._ctx._set(var_name,elem)
+                self._ctx._set(var_name, elem)
                 if self._cond is None or self._cond.eval(force_cache_refresh=True):
                     self._cached_val.append(self._expr.eval(force_cache_refresh=True))
             self._ctx._restore(var_name)
@@ -976,9 +944,9 @@ class OpNode(ExpNode):
                 self._cached_val = self._op(self._rarg.eval(
                     force_cache_refresh=force_cache_refresh))
             else:
-                l = self._larg.eval(force_cache_refresh=force_cache_refresh)
-                r = self._rarg.eval(force_cache_refresh=force_cache_refresh)
-                self._cached_val = self._op(l, r)
+                left = self._larg.eval(force_cache_refresh=force_cache_refresh)
+                right = self._rarg.eval(force_cache_refresh=force_cache_refresh)
+                self._cached_val = self._op(left, right)
             if self._opstr in ['[]', '()']:
                 if self._observer is not None:
                     self._observer.unbind()
@@ -1031,12 +999,12 @@ class OpNode(ExpNode):
         elif self._opstr == '**':
             return repr(self._larg) + '**' + repr(self._rarg)
         else:
-            if isinstance(self._larg,OpNode) and OP_PRIORITY[self._larg._opstr] < OP_PRIORITY[self._opstr]:
+            if isinstance(self._larg, OpNode) and OP_PRIORITY[self._larg._opstr] < OP_PRIORITY[self._opstr]:
                     l_repr = '('+repr(self._larg)+')'
             else:
                 l_repr = repr(self._larg)
 
-            if isinstance(self._rarg,OpNode) and OP_PRIORITY[self._rarg._opstr] <= OP_PRIORITY[self._opstr]:
+            if isinstance(self._rarg, OpNode) and OP_PRIORITY[self._rarg._opstr] <= OP_PRIORITY[self._opstr]:
                     r_repr = '('+repr(self._rarg)+')'
             else:
                 r_repr = repr(self._rarg)
@@ -1049,19 +1017,19 @@ def partial_eval(arg_stack, op_stack, pri=-1):
         higher priority then @pri, they are converted to OpNodes/AttrAccessNodes with
         arguments taken from the @arg_stack. The result is always placed back on the @arg_stack"""
     while len(op_stack) > 0 and pri <= OP_PRIORITY[op_stack[-1][1]]:
-        token, op = op_stack.pop()
+        token, operator = op_stack.pop()
         try:
-            ar = arg_stack.pop()
-            if op in OpNode.UNARY:
-                al = None
+            arg_r = arg_stack.pop()
+            if operator in OpNode.UNARY:
+                arg_l = None
             else:
-                al = arg_stack.pop()
-            if op == '.':
-                arg_stack.append(AttrAccessNode(al, ar))
+                arg_l = arg_stack.pop()
+            if operator == '.':
+                arg_stack.append(AttrAccessNode(arg_l, arg_r))
             else:
-                arg_stack.append(OpNode(op, al, ar))
+                arg_stack.append(OpNode(operator, arg_l, arg_r))
         except IndexError:
-            raise Exception("Not enough arguments for operator '" + op + "'")
+            raise Exception("Not enough arguments for operator '" + operator + "'")
 
 
 def parse_args(token_stream):
@@ -1104,7 +1072,7 @@ def parse_lst(token_stream):
     else:
         lst = [elem]
         while endt != T_RBRACKET:
-            elem, endt, pos = _parse(token_stream,[T_RBRACKET,T_COMMA, T_KEYWORD])
+            elem, endt, pos = _parse(token_stream, [T_RBRACKET, T_COMMA, T_KEYWORD])
             lst.append(elem)
         return ListNode(lst)
 
@@ -1115,17 +1083,17 @@ def parse_slice(token_stream):
     """
     index_s, endt, pos = _parse(token_stream, [T_COLON, T_RBRACKET])
     if endt == T_COLON:
-        slice = True
+        is_slice = True
         index_e, endt, pos = _parse(token_stream, [T_RBRACKET, T_COLON])
         if endt == T_COLON:
             step, endt, pos = _parse(token_stream, [T_RBRACKET])
         else:
             step = None
     else:
-        slice = False
+        is_slice = False
         index_e = None
         step = None
-    return slice, index_s, index_e, step
+    return is_slice, index_s, index_e, step
 
 
 def parse_interpolated_str(tpl_expr):
@@ -1143,17 +1111,17 @@ def parse_interpolated_str(tpl_expr):
     token_stream = tokenize(tpl_expr[abs_pos + 2:])
     ret = []
     while abs_pos > -1:
-        ret.append(ConstNode(tpl_expr[last_pos:abs_pos]))               # Get string from last }} to current {{
-        abs_pos += 2                                                    # Skip '{{'
-        token_stream = tokenize(tpl_expr[abs_pos:])                     # Tokenize string from {{ to the ending }}
-        ast,etok,rel_pos = _parse(token_stream,end_tokens=[T_RBRACE])
-        abs_pos += rel_pos                                              # Move to the second ending brace of the expression
+        ret.append(ConstNode(tpl_expr[last_pos:abs_pos]))                   # Get string from last }} to current {{
+        abs_pos += 2                                                        # Skip '{{'
+        token_stream = tokenize(tpl_expr[abs_pos:])                         # Tokenize string from {{ to the ending }}
+        ast, etok, rel_pos = _parse(token_stream, end_tokens=[T_RBRACE])
+        abs_pos += rel_pos                                                  # Move to the second ending brace of the expression
         if not tpl_expr[abs_pos] == "}":
             raise Exception("Invalid interpolated string, expecting '}' at " +
                             str(abs_pos) + " got '" + str(tpl_expr[abs_pos]) + "' instead.")
         else:
-            abs_pos += 1                                                # Skip the ending '}'
-        ret.append(OpNode("()",IdentNode("str"),FuncArgsNode([ast],{}))) # Wrap the expression in a str call and add it to the list
+            abs_pos += 1                                                    # Skip the ending '}'
+        ret.append(OpNode("()", IdentNode("str"), FuncArgsNode([ast], {}))) # Wrap the expression in a str call and add it to the list
         last_pos = abs_pos
         abs_pos = tpl_expr.find("{{", last_pos)
     if len(tpl_expr) > last_pos:
@@ -1161,26 +1129,26 @@ def parse_interpolated_str(tpl_expr):
     return ret
 
 
-_parse_cache = {}
+_PARSE_CACHE = {}
 
 
 def parse(expr, trailing_garbage_ok=False, use_cache=True):
-    if (expr, trailing_garbage_ok) in _parse_cache and use_cache:
+    if (expr, trailing_garbage_ok) in _PARSE_CACHE and use_cache:
         if trailing_garbage_ok:
-            ast, pos = _parse_cache[(expr, trailing_garbage_ok)]
+            ast, pos = _PARSE_CACHE[(expr, trailing_garbage_ok)]
             return ast.clone(), pos
         else:
-            ast = _parse_cache[(expr, trailing_garbage_ok)]
+            ast = _PARSE_CACHE[(expr, trailing_garbage_ok)]
             return ast.clone()
     token_stream = tokenize(expr)
-    ast,etok,pos = _parse(token_stream,trailing_garbage_ok=trailing_garbage_ok)
+    ast, etok, pos = _parse(token_stream, trailing_garbage_ok=trailing_garbage_ok)
     if trailing_garbage_ok:
         if use_cache:
-            _parse_cache[(expr, True)] = ast, pos
+            _PARSE_CACHE[(expr, True)] = ast, pos
         return ast, pos
     else:
         if use_cache:
-            _parse_cache[(expr, False)] = ast
+            _PARSE_CACHE[(expr, False)] = ast
         return ast
 
 
@@ -1190,7 +1158,10 @@ def _parse(token_stream, end_tokens=[], trailing_garbage_ok=False):
         unconsumed token from end_tokens is found. Returns
         the parsed tree (or None if the token_stream is empty),
         the last token seen and the position corresponding to
-        the next position in the source string
+        the next position in the source string.
+
+        The parser is a simple stack based parser, using a variant
+        of the [Shunting Yard Algorithm](https://en.wikipedia.org/wiki/Shunting-yard_algorithm)
     """
     arg_stack = []
     op_stack = []
@@ -1260,7 +1231,7 @@ def _parse(token_stream, end_tokens=[], trailing_garbage_ok=False):
                 partial_eval(arg_stack, op_stack)
                 if len(arg_stack) > 2 or len(op_stack) > 0:
                     raise Exception("Invalid expression, leftovers: args:"+str(arg_stack)+"ops:"+str(op_stack))
-                return arg_stack[0],None,pos
+                return arg_stack[0], None, pos
             else:
                 raise Exception("Unexpected token "+str((token,val))+" at "+str(pos))
         if not prev_token_set:
@@ -1270,4 +1241,4 @@ def _parse(token_stream, end_tokens=[], trailing_garbage_ok=False):
     partial_eval(arg_stack, op_stack)
     if len(arg_stack) > 2 or len(op_stack) > 0:
         raise Exception("Invalid expression, leftovers: args:"+str(arg_stack)+"ops:"+str(op_stack))
-    return arg_stack[0],None,pos
+    return arg_stack[0], None, pos

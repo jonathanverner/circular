@@ -1,3 +1,12 @@
+"""
+    Provides the ``InterpolatedAttrsPlugin`` plugin class which takes care
+    of interpolated element attributes, e.g. the ``class`` attribute of
+    the following element:
+
+    ```
+        <span class='bold {{ classes }}'>
+    ```
+"""
 try:
     from ..tpl import _compile
     from ..interpolatedstr import InterpolatedStr
@@ -59,7 +68,6 @@ class InterpolatedAttrsPlugin(TagPlugin):
             return self.child.update()
 
     def __repr__(self):
-        ret = "<Attr: "
         attrs = []
         for (name, obs) in self.values.items():
             if isinstance(obs, InterpolatedStr):
