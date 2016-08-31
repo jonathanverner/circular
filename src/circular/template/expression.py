@@ -719,7 +719,7 @@ class FuncArgsNode(MultiChildNode):
             self.emit('change')
 
     def __repr__(self):
-        return ','.join([repr(ch) for ch in self._children]+[k+'='+repr(v) for (k,v) in self._kwargs])
+        return ','.join([repr(ch) for ch in self._children]+[k+'='+repr(v) for (k,v) in self._kwargs.items()])
 
 
 class ListSliceNode(MultiChildNode):
