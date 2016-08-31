@@ -98,6 +98,6 @@ class Model(TagPlugin):
                 self._model.value = self.element.value
 
     def __repr__(self):
-        return "<ModelPlugin "+repr(self._model)+" ("+str(self._model.value)+")>"
+        return "<Model "+repr(self._model)+" ("+str(self._model.value)+")>"
 
 register_plugin(Model)

@@ -64,4 +64,4 @@ class InterpolatedAttrsPlugin(TagPlugin):
                 attrs.append(name+"='"+obs.value+"' ("+obs._src+")")
             else:
                 attrs.append(name+"="+obs)
-        return "<Attrs: "+" ".join(attrs)+" >"
+        return "<Attrs "+" ".join(attrs)+" >"

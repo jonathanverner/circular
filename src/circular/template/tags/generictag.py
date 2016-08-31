@@ -73,4 +73,4 @@ class GenericTagPlugin(TagPlugin):
             self.child_elements[ch] = [elems,fence]
 
     def __repr__(self):
-        return "<Generic: "+self.element.tagName+">"
+        return "<Generic "+self.element.tagName+">"

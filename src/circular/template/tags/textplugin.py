@@ -43,6 +43,6 @@ class TextPlugin(TagPlugin):
 
     def __repr__(self):
         if self.interpolated_str is not None:
-            return "<TextPlugin '"+self.interpolated_str._src.replace("\n","\\n")+"' => '"+self.element.text.replace("\n","\\n")+"'>"
+            return "<Text '"+self.interpolated_str._src.replace("\n","\\n")+"' => '"+self.element.text.replace("\n","\\n")+"'>"
         else:
-            return "<TextPlugin '"+self.element.text.replace("\n","\\n")+"'>"
+            return "<Text '"+self.element.text.replace("\n","\\n")+"'>"
