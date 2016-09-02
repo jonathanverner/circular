@@ -144,7 +144,7 @@ def _compile(tpl_element):
     # Now we initialize the first plugin, if any
     if len(plugins) > 0:
         plug_meta, args, kwargs = plugins.pop()
-        return plugin['class'](tpl_element, *args, **kwargs)
+        return plug_meta['class'](tpl_element, *args, **kwargs)
 
     # If there are any attributes left, we initialize the
     # InterpolatedAttrsPlugin
