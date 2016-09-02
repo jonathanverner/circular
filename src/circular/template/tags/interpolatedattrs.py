@@ -79,6 +79,8 @@ class InterpolatedAttrsPlugin(TagPlugin):
         attrs = []
         for (name, obs) in self.values.items():
             if isinstance(obs, InterpolatedStr):
+                # pylint: disable=protected-access; eventually, this should be fixed, but __repr__ is not a user facing
+                #                                   function, so for the time being ignore it
                 attrs.append(name + "='" + obs.value + "' (" + obs._src + ")")
             else:
                 attrs.append(name + "=" + obs)

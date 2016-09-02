@@ -45,6 +45,7 @@ class Model(TagPlugin):
         self.element = None
         self._ctx = None
         if isinstance(tpl_element, Model):
+            # pylint: disable=protected-access; we are cloning Model, we can access protected variables
             self._update_event = tpl_element._update_event
             self._update_interval = tpl_element._update_interval
             self._model = tpl_element.model.clone()

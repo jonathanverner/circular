@@ -39,6 +39,7 @@ class InterpolatedStr(EventMixin):
     def __init__(self, string):
         super().__init__()
         if isinstance(string, InterpolatedStr):
+            # pylint: disable=protected-access; we are cloning ourselves, we have access to protected variables
             self._src = string._src
             self.asts = []
             for ast in string.asts:
@@ -57,8 +58,8 @@ class InterpolatedStr(EventMixin):
         self.evaluate()
 
     def bind_ctx(self, context):
-        for a in self.asts:
-            a.bind_ctx(context)
+        for ast in self.asts:
+            ast.bind_ctx(context)
         self._dirty = True
         self._cached_val = ""
 
@@ -91,6 +92,7 @@ class InterpolatedStr(EventMixin):
         for ast in self.asts:
             try:
                 self._cached_vals.append(ast.eval())
+                # pylint: disable=bare-except; interpolated str must handle any exceptions when evaluating circular expressions
             except:
                 self._cached_vals.append("")
         self._cached_val = "".join(self._cached_vals)

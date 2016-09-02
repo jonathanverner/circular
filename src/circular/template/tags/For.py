@@ -62,6 +62,7 @@ class For(TagPlugin):
     def __init__(self, tpl_element, loop_spec=None):
         super().__init__(tpl_element)
         if isinstance(tpl_element, For):
+            # pylint: disable=protected-access; we are cloning self, we can access protected variables
             self._var = tpl_element._var
             self._cond = tpl_element._cond
             self._exp = tpl_element._exp.clone()
@@ -111,6 +112,8 @@ class For(TagPlugin):
                     clone.bind('change', self._subtree_change_handler)
                     ret.append(elem)
                     self.children.append((clone, elem))
+            # pylint: disable=broad-except; the For plugin must not choke on exceptions from user conditions; these
+            #                               can be arbitrary
             except Exception as exc:
                 logger.exception(exc)
                 logger.warn("Exception", exc, "when evaluating condition", self._cond, "with context", item_ctx)
@@ -123,8 +126,8 @@ class For(TagPlugin):
             self._dirty_subtree = False
             ret = []
             have_new = False
-            for (ch, elem) in self.children:
-                new_elem = ch.update()
+            for (child, elem) in self.children:
+                new_elem = child.update()
                 if new_elem is not None:
                     ret.append(new_elem)
                     have_new = True

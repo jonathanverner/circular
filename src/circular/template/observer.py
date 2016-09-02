@@ -19,7 +19,7 @@
     Where the last line will result in a call to the change_handler.
 
     WARNING: Only user-defined classes may be observed, not plain lists, dicts, etc.
-    The module provides simple wrappers around ``dict`` (:class:`DictProxy`) and ``list`` 
+    The module provides simple wrappers around ``dict`` (:class:`DictProxy`) and ``list``
     (:class:`ListProxy`) which can be observed.
 
 """
@@ -116,7 +116,7 @@ class ArrayMixin(object):
         }
         try:
             change_event['old'] = self[key]
-        except:
+        except KeyError:
             pass
         self._orig_class.__setitem__(self, key, value)
         # super().__setitem__(key,value)
@@ -130,7 +130,7 @@ class ArrayMixin(object):
         }
         try:
             change_event['old'] = self[key]
-        except:
+        except KeyError:
             pass
         self._orig_class.__delitem__(self, key)
         # super().__delitem__(key)
@@ -291,6 +291,7 @@ def observe(obj, observer=None, ignore_errors=False):
                 extend_instance(obj, ObjMixin)
             obj._create_observer()
         except Exception as exc:
+            # pylint: disable-broad-except; not sure what possible exceptions can happen here, must catch them though
             if not ignore_errors:
                 raise Exception("Cannot observe (is obj a primitive type?):"+str(exc))
             else:

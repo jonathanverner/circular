@@ -29,28 +29,28 @@ class PrefixLookupDict(dict):
             for item in init:
                 self[item] = item
         elif isinstance(init, dict):
-            for (k, v) in init.items():
-                self[k] = v
+            for (key, val) in init.items():
+                self[key] = val
 
     def _canonical(self, key):
-        k = key.upper().replace('-', '').replace('_', '')
-        if k.startswith(self._prefix):
-            return k[len(self._prefix):]
+        canonical_key = key.upper().replace('-', '').replace('_', '')
+        if canonical_key.startswith(self._prefix):
+            return canonical_key[len(self._prefix):]
         else:
-            return k
+            return canonical_key
 
     def remove(self, key):
         try:
             del self[key]
-        except:
+        except KeyError:
             pass
 
     def set_prefix(self, prefix):
         self._prefix = prefix.upper().replace('-', '').replace('_', '')
 
     def update(self, other):
-        for (k, v) in other.items():
-            self[k] = v
+        for (key, val) in other.items():
+            self[key] = val
 
     def __delitem__(self, key):
         return super().__delitem__(self._canonical(key))
@@ -136,7 +136,7 @@ def _compile(tpl_element):
         if tpl_element.nodeName in PLUGINS:
             tplug = PLUGINS[tpl_element.nodeName]
             plugins.append(tplug, [], _build_kwargs(tpl_element, tplug))
-            
+
         setattr(tpl_element, '_plugins', plugins)
 
     plugins = getattr(tpl_element, '_plugins')
@@ -220,6 +220,7 @@ class Template(EventMixin):
     """
 
     def __init__(self, elem):
+        super().__init__()
         self.root = _compile(elem)
         self.elem = elem
         self.update_timer = None
@@ -230,7 +231,7 @@ class Template(EventMixin):
         self.elem = elem
         self.root.bind('change', self._start_timer)
 
-    def _start_timer(self, event):
+    def _start_timer(self, _event):
         if self.update_timer is None:
             self.update_timer = timer.set_interval(self.update, 50)
 

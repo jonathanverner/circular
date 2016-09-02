@@ -91,10 +91,10 @@ POSSIBILITY OF SUCH DAMAGE.
         self._elem.bind('keypress', self.my_key_press)
         self._elem.bind('keydown', self.my_key_down)
         self._elem.bind('click', self.cursor_to_end)
-        v = sys.implementation.version
-        self._elem.value = "Brython %s.%s.%s on %s %s\n%s\n>>> " % (v[0],
-                                                                    v[1],
-                                                                    v[2],
+        version = sys.implementation.version
+        self._elem.value = "Brython %s.%s.%s on %s %s\n%s\n>>> " % (version[0],
+                                                                    version[1],
+                                                                    version[2],
                                                                     window.navigator.appName,
                                                                     window.navigator.appVersion,
                                                                     'Type "copyright()", "credits()" or "license()" for more information.')
@@ -137,12 +137,12 @@ POSSIBILITY OF SUCH DAMAGE.
     def write(self, data):
         self._elem.value += str(data)
 
-    def cursor_to_end(self, *args):
+    def cursor_to_end(self, *_args):
         pos = len(self._elem.value)
         self._elem.setSelectionRange(pos, pos)
         self._elem.scrollTop = self._elem.scrollHeight
 
-    def get_col(self, area):
+    def get_col(self, _area):
         """
             returns the column position of the cursor
         """
@@ -193,6 +193,7 @@ POSSIBILITY OF SUCH DAMAGE.
                             self._redirect_out()
                             exec(self.current_line, self.editor_ns)
                         except:
+                            # pylint: disable=bare-except; any exception can happen here
                             traceback.print_exc(self)
                         finally:
                             self._redirect_out()
@@ -205,6 +206,7 @@ POSSIBILITY OF SUCH DAMAGE.
                         traceback.print_exc(self)
                         self._elem.value += '>>> '
                         self._status = "main"
+                    # pylint: disable=bare-except; any exception can happen here
                 except:
                     traceback.print_exc(self)
                     self._elem.value += '>>> '
@@ -222,6 +224,7 @@ POSSIBILITY OF SUCH DAMAGE.
                     _ = exec(block_src, self.editor_ns)
                     if _ is not None:
                         print(repr(_))
+                    # pylint: disable=bare-except; any exception can happen here
                 except:
                     traceback.print_exc(self)
                 finally:

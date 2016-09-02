@@ -10,7 +10,7 @@
       - dict constants are not supported
 """
 # pylint: disable=line-too-long; contains long conditionals which look bad when split on multiple lines
-# pylint: disable=protected-access; pylint doesn't allow descendants to use parent's protected variables, 
+# pylint: disable=protected-access; pylint doesn't allow descendants to use parent's protected variables.
 #                                   here they are used extensively by descendants of the ExpNode class.
 
 from circular.utils.events import EventMixin
@@ -68,6 +68,9 @@ OP_PRIORITY = {
 
 def token_type(start_chars):
     """ Identifies the next token type based on the next four characters """
+    # pylint: disable=too-many-boolean-expressions
+    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches
     first_char = start_chars[0]
     if first_char == ' ' or first_char == "\t" or first_char == "\n":
         return T_SPACE
@@ -123,6 +126,7 @@ def token_type(start_chars):
 
 def parse_number(expr, pos):
     """ Parses a number """
+    # pylint: disable=too-many-nested-blocks
     if expr[pos] == '-':
         negative = True
         pos = pos + 1
@@ -132,8 +136,7 @@ def parse_number(expr, pos):
     pos = pos + 1
     decimal_part = True
     div = 10
-    while pos < len(expr) and ((expr[pos] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']) or (
-                               decimal_part and expr[pos] == '.')):
+    while pos < len(expr) and ((expr[pos] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']) or (decimal_part and expr[pos] == '.')):
         if expr[pos] == '.':
             decimal_part = False
         else:
@@ -189,8 +192,8 @@ def parse_identifier(expr, pos):
     ret = expr[pos]
     pos = pos + 1
     while pos < len(expr):
-        o = ord(expr[pos])
-        if not ((o >= 48 and o <= 57) or (o >= 65 and o <= 90) or (o >= 97 and o <= 122) or o == 36 or o == 95):
+        char_ord = ord(expr[pos])
+        if not ((char_ord >= 48 and char_ord <= 57) or (char_ord >= 65 and char_ord <= 90) or (char_ord >= 97 and char_ord <= 122) or char_ord == 36 or char_ord == 95):
             break
         ret += expr[pos]
         pos = pos + 1
@@ -198,15 +201,18 @@ def parse_identifier(expr, pos):
 
 
 def tokenize(expr):
-    """ A generator which takes a string and converts it to a
+    """
+        A generator which takes a string and converts it to a
         stream of tokens, yielding the triples (token, its value, next position in the string)
-        one by one.  """
+        one by one.
+    """
+    # pylint: disable=too-many-branches; python doesn't have a switch statement
+    # pylint: disable=too-many-statements; the length is just due to the many token types
     pos = 0
     while pos < len(expr):
         tokentype = token_type(expr[pos:pos + 4])
         if tokentype == T_SPACE:
             pos = pos + 1
-            pass
         elif tokentype == T_NUMBER:
             number, pos = parse_number(expr, pos)
             yield (T_NUMBER, number, pos)
@@ -249,7 +255,7 @@ def tokenize(expr):
                         pos = npos + 3
                     else:
                         char_ord = ord(expr[npos + 3])
-                        if ((char_ord < 48 or char_ord > 57) and (char_ord < 65 or char_ord > 90) and (char_ord < 97 or char_ord > 122)):
+                        if (char_ord < 48 or char_ord > 57) and (char_ord < 65 or char_ord > 90) and (char_ord < 97 or char_ord > 122):
                             yield (T_OPERATOR, 'is not', npos + 3)
                             pos = npos + 3
                         else:
@@ -347,11 +353,12 @@ class ExpNode(EventMixin):
             call evaluate with `force_cache_refresh=True`.
 
             Note: The function wraps the eval code in a try-catch block so it does
-            not throw.
+            not raise an exception.
         """
         if self._dirty:
             try:
                 self._cached_val = self.eval()
+                # pylint: disable=bare-except; function must not raise an exception!
             except:
                 pass
         return self._cached_val
@@ -415,7 +422,7 @@ class ExpNode(EventMixin):
         ret = ret or (isinstance(self, OpNode) and self._opstr == '[]' and isinstance(self._rarg, ListSliceNode) and not self._rarg._slice)
         return ret
 
-    def _change_handler(self, event):
+    def _change_handler(self, _event):
         if self._dirty and self.defined:
             return
         self._dirty = True
@@ -694,8 +701,8 @@ class FuncArgsNode(MultiChildNode):
 
     def bind_ctx(self, context):
         super().bind_ctx(context)
-        for kw in self._kwargs.values():
-            kw.bind_ctx(context)
+        for kwarg in self._kwargs.values():
+            kwarg.bind_ctx(context)
 
     def _kwarg_change(self, event, arg):
         if self._dirty_kwargs and self.defined:
@@ -1007,12 +1014,12 @@ class OpNode(ExpNode):
             return repr(self._larg) + '**' + repr(self._rarg)
         else:
             if isinstance(self._larg, OpNode) and OP_PRIORITY[self._larg._opstr] < OP_PRIORITY[self._opstr]:
-                    l_repr = '('+repr(self._larg)+')'
+                l_repr = '('+repr(self._larg)+')'
             else:
                 l_repr = repr(self._larg)
 
             if isinstance(self._rarg, OpNode) and OP_PRIORITY[self._rarg._opstr] <= OP_PRIORITY[self._opstr]:
-                    r_repr = '('+repr(self._rarg)+')'
+                r_repr = '('+repr(self._rarg)+')'
             else:
                 r_repr = repr(self._rarg)
 
@@ -1214,10 +1221,10 @@ def _parse(token_stream, end_tokens=[], trailing_garbage_ok=False):
                 arg_stack.append(parse_lst(token_stream))
                 prev_token = T_LBRACKET_LIST
             else:
-                slice, index_s, index_e, step = parse_slice(token_stream)
+                is_slice, index_s, index_e, step = parse_slice(token_stream)
                 pri = OP_PRIORITY['[]']
                 partial_eval(arg_stack, op_stack, pri)
-                arg_stack.append(ListSliceNode(slice, index_s, index_e, step))
+                arg_stack.append(ListSliceNode(is_slice, index_s, index_e, step))
                 op_stack.append((T_OPERATOR, '[]'))
                 prev_token = T_LBRACKET_INDEX
             prev_token_set = True

@@ -74,6 +74,7 @@ class Event(TagPlugin):
 
     def _event_handler(self, event):
         # py-lint: disable=bare-except; a tag plugin should not throw!
+        # py-lint: disable=broad-except
         logger.log("Handling " + self.EVENT)
         try:
             self.handler.call(event=event)
