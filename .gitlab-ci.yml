@@ -10,3 +10,11 @@ test:
 docs:
   script:
     - fab docs.build
+  stage: deploy
+  script:
+    - fab docs.build
+  artifacts:
+    paths:
+    - www/docs/
+  only:
+    - master

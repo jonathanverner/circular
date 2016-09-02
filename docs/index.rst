@@ -6,21 +6,19 @@
 Welcome to Circular's documentation!
 ====================================
 
+Circular is a Python web-framework somewhat similar to `AngularJS  <https://angularjs.org/>`_. It is built upon the
+`Brython <http://www.brython.info/>`_ Python to JavaScript compiler.
+
 Contents:
 
 .. toctree::
    :maxdepth: 2
+
+   installing.rst
+   tutorial.rst
+   template_guide.rst
+   contributing.rst
    
-.. include:: ../README.md
-
-.. automodule:: circular.template
-
-.. automodule:: circular.utils
-   :members:
-   
-.. automodule:: circular.widgets
-   :members:
-
 
 Indices and tables
 ==================
