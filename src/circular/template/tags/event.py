@@ -23,7 +23,7 @@ class Event(TagPlugin):
             self.child = tpl_element.child.clone()
             self.EVENT = tpl_element.EVENT
         else:
-            self.handler = parse(expression)
+            self.handler, _ = parse(expression)
             if not self.handler.is_function_call():
                 raise Exception(self.EVENT+" Handler needs to be a function call: "+str(expression))
             self.child = _compile(tpl_element)

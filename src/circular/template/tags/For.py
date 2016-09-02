@@ -78,7 +78,7 @@ class For(TagPlugin):
             self._exp, pos = parse(sequence_exp, trailing_garbage_ok=True)
             match = For.COND_RE.match(sequence_exp[pos:])
             if match:
-                self._cond = parse(match['condition'])
+                self._cond, _ = parse(match['condition'])
             else:
                 self._cond = None
             self.children = []

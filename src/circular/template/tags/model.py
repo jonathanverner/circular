@@ -52,7 +52,7 @@ class Model(TagPlugin):
                 self._update_interval = int(update_interval)
             else:
                 self._update_interval = None
-            self._model = parse(model)
+            self._model, _ = parse(model)
             self.child = _compile(tpl_element)
             assert self._model.is_assignable(), "The expression "+model+" does not support assignment"
         if self._update_interval:

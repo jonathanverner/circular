@@ -1134,22 +1134,13 @@ _PARSE_CACHE = {}
 
 def parse(expr, trailing_garbage_ok=False, use_cache=True):
     if (expr, trailing_garbage_ok) in _PARSE_CACHE and use_cache:
-        if trailing_garbage_ok:
-            ast, pos = _PARSE_CACHE[(expr, trailing_garbage_ok)]
-            return ast.clone(), pos
-        else:
-            ast = _PARSE_CACHE[(expr, trailing_garbage_ok)]
-            return ast.clone()
+        ast, pos = _PARSE_CACHE[(expr, trailing_garbage_ok)]
+        return ast.clone(), pos
     token_stream = tokenize(expr)
     ast, etok, pos = _parse(token_stream, trailing_garbage_ok=trailing_garbage_ok)
-    if trailing_garbage_ok:
-        if use_cache:
-            _PARSE_CACHE[(expr, True)] = ast, pos
-        return ast, pos
-    else:
-        if use_cache:
-            _PARSE_CACHE[(expr, False)] = ast
-        return ast
+    if use_cache:
+        _PARSE_CACHE[(expr, True)] = ast, pos
+    return ast, pos
 
 
 def _parse(token_stream, end_tokens=[], trailing_garbage_ok=False):

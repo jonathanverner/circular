@@ -214,72 +214,73 @@ def test_parse():
     ctx = Context()
 
     # Test Simple Arithmetic Expressions
-    ast = exp.parse('(1+1*8)*9')
+    ast, _ = exp.parse('(1+1*8)*9')
     assert ast.evalctx(ctx) is 81
 
     # Test Simple Arithmetic Expressions
-    ast = exp.parse('(1-1)')
+    ast, _ = exp.parse('(1-1)')
     assert ast.evalctx(ctx) is 0
 
     # Test Simple Arithmetic Expressions
-    ast = exp.parse('(-1)')
+    ast, _ = exp.parse('(-1)')
     assert ast.evalctx(ctx) is -1
 
     # Test Boolean Expressions
-    ast = exp.parse('True and False')
+    ast, _ = exp.parse('True and False')
     assert ast.evalctx(ctx) is False
 
-    ast = exp.parse('True and not False')
+    ast, _ = exp.parse('True and not False')
     assert ast.evalctx(ctx) is True
 
     # Test is
-    ast = exp.parse("1 is None")
+    ast, _ = exp.parse("1 is None")
     assert ast.evalctx(ctx) is False
 
-    ast = exp.parse("None is None")
+    ast, _ = exp.parse("None is None")
     assert ast.evalctx(ctx) is True
 
-    ast = exp.parse("False is not None")
+    ast, _ = exp.parse("False is not None")
     assert ast.evalctx(ctx) is True
 
     # Test Slices
     ctx.s="abcde"
-    ast = exp.parse('s[-1]')
+    ast, _ = exp.parse('s[-1]')
     assert ast.evalctx(ctx) == 'e'
-    ast = exp.parse('s[0]')
+    ast, _ = exp.parse('s[0]')
     assert ast.evalctx(ctx) == 'a'
-    ast = exp.parse('s[1:3]')
+    ast, _ = exp.parse('s[1:3]')
     assert ast.evalctx(ctx) == 'bc'
-    ast = exp.parse('s[0:-1:2]')
+    ast, _ = exp.parse('s[0:-1:2]')
     assert ast.evalctx(ctx) == 'ac'
-    ast = exp.parse('s[1:]')
+    ast, _ = exp.parse('s[1:]')
     assert ast.evalctx(ctx) == 'bcde'
-    ast = exp.parse('s[:-1]')
+    ast, _ = exp.parse('s[:-1]')
     assert ast.evalctx(ctx) == 'abcd'
 
     # Test Lists
-    ast = exp.parse('[1,2,3,4]')
-    assert ast.evalctx(ctx) == [1,2,3,4]
+    ast, _ = exp.parse('[1,2,3,4]')
+    assert ast.evalctx(ctx) == [1, 2, 3, 4]
 
     # Test Comprehension
-    ast = exp.parse('[p+1 for p in [1,2,3,4]]')
-    assert ast.evalctx(ctx) == [2,3,4,5]
+    ast, _ = exp.parse('[p+1 for p in [1,2,3,4]]')
+    assert ast.evalctx(ctx) == [2, 3, 4, 5]
 
-    ast = exp.parse('[p+1 for p in [1,2,3,4] if p%2==0]')
-    assert ast.evalctx(ctx) == [3,5]
+    ast, _ = exp.parse('[p+1 for p in [1,2,3,4] if p%2==0]')
+    assert ast.evalctx(ctx) == [3, 5]
 
     # Test Builtins
-    ast = exp.parse("str(10)")
+    ast, _ = exp.parse("str(10)")
     assert ast.evalctx(ctx) == "10"
 
-    ast = exp.parse("int('21')")
+    ast, _ = exp.parse("int('21')")
     assert ast.evalctx(ctx) == 21
 
-    ast = exp.parse("len([1,2,3])")
+    ast, _ = exp.parse("len([1,2,3])")
     assert ast.evalctx(ctx) == 3
 
-    ctx.str=lambda x:"str("+str(x)+")"
-    ast = exp.parse("str(10)") == "str(10)"
+    ctx.str = lambda x: "str("+str(x)+")"
+    ast, _ = exp.parse("str(10)")
+    assert str(ast) == "str(10)"
     del ctx.str
 
 
@@ -290,40 +291,40 @@ def test_parse():
     ctx.obj.b.c=20
     ctx.obj.d = [Context({'a':30})]
 
-    ast = exp.parse('obj.a')
+    ast, _ = exp.parse('obj.a')
     assert ast.evalctx(ctx) == 10
 
-    ast = exp.parse('obj.b.c')
+    ast, _ = exp.parse('obj.b.c')
     assert ast.evalctx(ctx) == 20
 
-    ast = exp.parse('obj.d[0].a')
+    ast, _ = exp.parse('obj.d[0].a')
     assert ast.evalctx(ctx) == 30
 
     # Test Array Access
-    ast = exp.parse('mylst[0][1][2]')
-    ctx.mylst = [[None,[None,None,"Ahoj"]]]
+    ast, _ = exp.parse('mylst[0][1][2]')
+    ctx.mylst = [[None, [None, None, "Ahoj"]]]
     assert ast.evalctx(ctx) == "Ahoj"
 
     # Test String slices
-    ast = exp.parse('"ahoj"[1:]')
+    ast, _ = exp.parse('"ahoj"[1:]')
     assert ast.evalctx(ctx) == "hoj"
-    ast = exp.parse('"ahoj"[:1]')
+    ast, _ = exp.parse('"ahoj"[:1]')
     assert ast.evalctx(ctx) == "a"
-    ast = exp.parse('"ahoj"[-1]')
+    ast, _ = exp.parse('"ahoj"[-1]')
     assert ast.evalctx(ctx) == "j"
 
     # Test array concatenation
-    ast = exp.parse('([0]+["mixin"])[1]')
-    assert ast.evalctx(ctx)  == "mixin"
+    ast, _ = exp.parse('([0]+["mixin"])[1]')
+    assert ast.evalctx(ctx) == "mixin"
 
     # Test Function Calls
-    ast = exp.parse('"a,b,c,d".split(",")')
+    ast, _ = exp.parse('"a,b,c,d".split(",")')
     assert ast.evalctx(ctx) == ['a', 'b', 'c', 'd']
 
     ctx.func = lambda x,ev:str(x+10)+ev
     ctx.ch = 20
-    ctx.s='Hi'
-    ast = exp.parse("func(ch,ev=s)")
+    ctx.s = 'Hi'
+    ast, _ = exp.parse("func(ch,ev=s)")
     ast.bind_ctx(ctx)
     ctx.s='Hello'
     assert ast.eval() == '30Hello'
@@ -332,68 +333,68 @@ def test_parse():
 
     # Test Complex Expressions
     expr = '(1+2*obj.a - 10)'
-    ast = exp.parse(expr)
+    ast, _ = exp.parse(expr)
     assert ast.evalctx(ctx) == 11
 
     expr = '[(1+2*a[1+3] - 10) for a in [[2,1,2,3,4,5],[1,2],[2,2,2,2,2,2,2]] if a[0] % 2 == 0]'
-    ast = exp.parse(expr)
-    assert ast.evalctx(ctx) == [-1,-5]
+    ast, _ = exp.parse(expr)
+    assert ast.evalctx(ctx) == [-1, -5]
 
     # Test parse cache
     for i in range(10):
         expr = '[(1+2*a[1+3] - 10) for a in [[2,1,2,3,4,5],[1,2],[2,2,2,2,2,2,2]] if a[0] % 2 == 0]'
-        ast = exp.parse(expr)
-        assert ast.evalctx(ctx) == [-1,-5]
+        ast, _ = exp.parse(expr)
+        assert ast.evalctx(ctx) == [-1, -5]
 
 def test_is_func():
-    ast = exp.parse('(1+1*x)*9')
-    assert ast.is_function_call() == False
+    ast, _ = exp.parse('(1+1*x)*9')
+    assert ast.is_function_call() is False
 
-    ast = exp.parse('x')
-    assert ast.is_function_call() == False
+    ast, _ = exp.parse('x')
+    assert ast.is_function_call() is False
 
-    ast = exp.parse('f(1+1*x)')
-    assert ast.is_function_call() == True
+    ast, _ = exp.parse('f(1+1*x)')
+    assert ast.is_function_call() is True
 
-    ast = exp.parse('a.b[10].f(1+1*x)')
-    assert ast.is_function_call() == True
+    ast, _ = exp.parse('a.b[10].f(1+1*x)')
+    assert ast.is_function_call() is True
 
 def test_is_ident():
-    ast = exp.parse('(1+1*x)*9')
-    assert ast.is_assignable() == False
+    ast, _ = exp.parse('(1+1*x)*9')
+    assert ast.is_assignable() is False
 
-    ast = exp.parse('f(1+1*x)')
-    assert ast.is_assignable() == False
+    ast, _ = exp.parse('f(1+1*x)')
+    assert ast.is_assignable() is False
 
-    ast = exp.parse('None')
-    assert ast.is_assignable() == False
+    ast, _ = exp.parse('None')
+    assert ast.is_assignable() is False
 
-    ast = exp.parse('1')
-    assert ast.is_assignable() == False
+    ast, _ = exp.parse('1')
+    assert ast.is_assignable() is False
 
-    ast = exp.parse('"ahoj"')
-    assert ast.is_assignable() == False
+    ast, _ = exp.parse('"ahoj"')
+    assert ast.is_assignable() is False
 
-    ast = exp.parse('[1,2,3]')
-    assert ast.is_assignable() == False
+    ast, _ = exp.parse('[1,2,3]')
+    assert ast.is_assignable() is False
 
-    ast = exp.parse('x[1:2:3]')
-    assert ast.is_assignable() == False
+    ast, _ = exp.parse('x[1:2:3]')
+    assert ast.is_assignable() is False
 
-    ast = exp.parse('a.b[10].f')
-    assert ast.is_assignable() == True
+    ast, _ = exp.parse('a.b[10].f')
+    assert ast.is_assignable() is True
 
-    ast = exp.parse('a.b[x].f')
-    assert ast.is_assignable() == True
+    ast, _ = exp.parse('a.b[x].f')
+    assert ast.is_assignable() is True
 
-    ast = exp.parse('a.b[x]')
-    assert ast.is_assignable() == True
+    ast, _ = exp.parse('a.b[x]')
+    assert ast.is_assignable() is True
 
-    ast = exp.parse('a.b')
-    assert ast.is_assignable() == True
+    ast, _ = exp.parse('a.b')
+    assert ast.is_assignable() is True
 
-    ast = exp.parse('x')
-    assert ast.is_assignable() == True
+    ast, _ = exp.parse('x')
+    assert ast.is_assignable() is True
 
 
 class TestCall(object):
@@ -413,7 +414,7 @@ class TestCall(object):
 
         self.ctx.handler = handler
         self.ctx.ch = 10
-        ast = exp.parse("handler(ch)")
+        ast, _ = exp.parse("handler(ch)")
         ast.bind_ctx(self.ctx)
         assert self.called is False
         ast.call(event='Event')
@@ -430,32 +431,32 @@ def test_eval_assignment():
     ctx = Context()
 
     # Do not allow assigning to non-trivial expressions
-    ast = exp.parse('(1+1*x)*9')
+    ast, _ = exp.parse('(1+1*x)*9')
     with raises(Exception):
         ast.value = 10
 
     # Do not allow assigning to built-in constants
-    ast = exp.parse('True')
+    ast, _ = exp.parse('True')
     with raises(Exception):
         ast.value = 10
 
     # Do not allow assigning to function calls
-    ast = exp.parse('f(1)')
+    ast, _ = exp.parse('f(1)')
     with raises(Exception):
         ast.value = 10
 
     # Do not allow assigning to constant lists
-    ast = exp.parse("[1,2,3,4]")
+    ast, _ = exp.parse("[1,2,3,4]")
     with raises(Exception):
         ast.value = 10
 
     # Do not allow assigning to constants
-    ast = exp.parse("'ahoj'")
+    ast, _ = exp.parse("'ahoj'")
     with raises(Exception):
         ast.value = 10
 
     # Allow assigning to non-existing variables
-    ast = exp.parse('x')
+    ast, _ = exp.parse('x')
     ast.bind_ctx(ctx)
     ast.value = 10
     assert ctx.x == 10
@@ -467,14 +468,14 @@ def test_eval_assignment():
     # Allow assigning to list elements
     ctx.lst = [1,2,3]
     ctx.x = 0
-    ast = exp.parse("lst[x]")
+    ast, _ = exp.parse("lst[x]")
     ast.bind_ctx(ctx)
     ast.value = 20
     assert ctx.lst[0] == 20
 
     # Allow assigning to non-existing object attributes
     ctx.obj = Context()
-    ast = exp.parse('obj.test')
+    ast, _ = exp.parse('obj.test')
     ast.bind_ctx(ctx)
     ast.value = 30987
     assert ctx.obj.test == 30987
@@ -498,7 +499,7 @@ class TestExpressionChanges(object):
         self.ctx._clear()
 
     def prepare(self,expr):
-        self.obs = exp.parse(expr)
+        self.obs, _ = exp.parse(expr)
         self.obs.bind_ctx(self.ctx)
         try:
             self.obs.eval()
