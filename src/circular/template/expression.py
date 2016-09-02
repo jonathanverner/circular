@@ -1191,6 +1191,7 @@ def _parse(token_stream, end_tokens=[], trailing_garbage_ok=False):
     op_stack = []
     prev_token = None
     prev_token_set = False
+    save_pos = 0
     for (token, val, pos) in token_stream:
         if token in end_tokens:  # The token is unconsumed and in the stoplist, so we evaluate what we can and stop parsing
             partial_eval(arg_stack, op_stack)
@@ -1262,7 +1263,8 @@ def _parse(token_stream, end_tokens=[], trailing_garbage_ok=False):
             prev_token = token
         else:
             prev_token_set = False
+        save_pos = pos
     partial_eval(arg_stack, op_stack)
     if len(arg_stack) > 2 or len(op_stack) > 0:
         raise Exception("Invalid expression, leftovers: args:"+str(arg_stack)+"ops:"+str(op_stack))
-    return arg_stack[0], None, pos
+    return arg_stack[0], None, save_pos
