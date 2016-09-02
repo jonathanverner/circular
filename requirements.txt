@@ -6,6 +6,7 @@ backports-abc==0.4
 bcrypt==2.0.0
 cffi==1.6.0
 CommonMark==0.5.4
+coverage==4.2
 docutils==0.12
 future==0.15.2
 imagesize==0.7.1
@@ -21,6 +22,7 @@ pycparser==2.14
 Pygments==2.1.3
 pylint==1.6.4
 pytest==2.9.2
+pytest-cov==2.3.1
 pytz==2016.6.1
 recommonmark==0.4.0
 sh==1.11

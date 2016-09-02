@@ -8,7 +8,7 @@ conf = settings(__package__,strip_leading=1)
 @task
 def all():
     cleanup()
-    venv(['PYTHONPATH=./src/:./tests/brython/ python','-m', 'pytest', '-rw', 'tests'])
+    venv(['PYTHONPATH=./src/:./tests/brython/ python','-m', 'pytest', '-rw', '--cov=./src/circular', 'tests'])
     cleanup()
 
 @task

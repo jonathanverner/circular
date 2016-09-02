@@ -6,3 +6,4 @@ www
 virtual_env*
 .cache/
 .sass-cache/
+.coverage
