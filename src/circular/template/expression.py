@@ -9,6 +9,9 @@
 
       - dict constants are not supported
 """
+# pylint: disable=line-too-long; contains long conditionals which look bad when split on multiple lines
+# pylint: disable=protected-access; pylint doesn't allow descendants to use parent's protected variables, 
+#                                   here they are used extensively by descendants of the ExpNode class.
 
 from circular.utils.events import EventMixin
 
@@ -40,27 +43,28 @@ T_KEYWORD = 19          # Warning: This does not include True,False,None; these 
 T_UNKNOWN = 20
 
 OP_PRIORITY = {
-    '(':-2,    # Parenthesis have lowest priority so that we always stop partial evaluation when
-               # reaching a parenthesis
-    '==':0,
-    'and':0,
-    'or':0,
-    'is':0,
-    'is not':0,
-    'in':0,
-    'not':1,   # not has higher priority then other boolean operations so that 'a and not b' is interpreted as 'a and (not b)'
-    '+':2,
-    '-':2,
-    '*':3,
-    '/':3,
-    '//':3,
-    '%':3,
-    '-unary':4,
-    '**':4,
-    '[]':5,    # Array slicing/indexing
-    '()':5,    # Function calling
-    '.':5      # Attribute access has highest priority (e.g. a.c**2 is not a.(c**2), and a.func(b) is not a.(func(b)))
+    '(': -2,    # Parenthesis have lowest priority so that we always stop partial evaluation when
+                #  reaching a parenthesis
+    '==': 0,
+    'and': 0,
+    'or': 0,
+    'is': 0,
+    'is not': 0,
+    'in': 0,
+    'not': 1,   # not has higher priority then other boolean operations so that 'a and not b' is interpreted as 'a and (not b)'
+    '+': 2,
+    '-': 2,
+    '*': 3,
+    '/': 3,
+    '//': 3,
+    '%': 3,
+    '-unary': 4,
+    '**': 4,
+    '[]':  5,    # Array slicing/indexing
+    '()': 5,    # Function calling
+    '.': 5      # Attribute access has highest priority (e.g. a.c**2 is not a.(c**2), and a.func(b) is not a.(func(b)))
 }
+
 
 def token_type(start_chars):
     """ Identifies the next token type based on the next four characters """
@@ -116,6 +120,7 @@ def token_type(start_chars):
     else:
         return T_UNKNOWN
 
+
 def parse_number(expr, pos):
     """ Parses a number """
     if expr[pos] == '-':
@@ -128,7 +133,7 @@ def parse_number(expr, pos):
     decimal_part = True
     div = 10
     while pos < len(expr) and ((expr[pos] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']) or (
-                               decimal_part and expr[pos]=='.' )):
+                               decimal_part and expr[pos] == '.')):
         if expr[pos] == '.':
             decimal_part = False
         else:
@@ -185,7 +190,7 @@ def parse_identifier(expr, pos):
     pos = pos + 1
     while pos < len(expr):
         o = ord(expr[pos])
-        if not ( (o >= 48 and o <= 57) or (o >= 65 and o <= 90) or (o >= 97 and o <= 122) or o == 36 or o == 95 ):
+        if not ((o >= 48 and o <= 57) or (o >= 65 and o <= 90) or (o >= 97 and o <= 122) or o == 36 or o == 95):
             break
         ret += expr[pos]
         pos = pos + 1
@@ -244,8 +249,7 @@ def tokenize(expr):
                         pos = npos + 3
                     else:
                         char_ord = ord(expr[npos + 3])
-                        if ((char_ord < 48 or char_ord > 57) and (char_ord < 65 or char_ord > 90)
-                                and (char_ord < 97 or char_ord > 122)):
+                        if ((char_ord < 48 or char_ord > 57) and (char_ord < 65 or char_ord > 90) and (char_ord < 97 or char_ord > 122)):
                             yield (T_OPERATOR, 'is not', npos + 3)
                             pos = npos + 3
                         else:
@@ -373,7 +377,7 @@ class ExpNode(EventMixin):
         else:
             self.emit('change', {'value': self._cached_val})
 
-    def _assign(self, val):
+    def _assign(self, _val):
         raise Exception("Assigning to " + str(self) + " not supported")
 
     def bind_ctx(self, ctx):
@@ -403,9 +407,12 @@ class ExpNode(EventMixin):
         """
             Returns true if the expression value can be assigned to.
         """
+        # pylint: disable=no-member; since we explicitely check for the specific descendant type, we are sure that
+        #                            the attributes ``_const``, ``_opstr``, ``_rarg`` and ``_slice``,
+        #                            respectively are actually members
         ret = isinstance(self, IdentNode) and not self._const
         ret = ret or isinstance(self, AttrAccessNode)
-        ret = ret or isinstance(self, OpNode) and self._opstr == '[]' and isinstance(self._rarg, ListSliceNode) and not self._rarg._slice
+        ret = ret or (isinstance(self, OpNode) and self._opstr == '[]' and isinstance(self._rarg, ListSliceNode) and not self._rarg._slice)
         return ret
 
     def _change_handler(self, event):
@@ -798,7 +805,7 @@ class AttrAccessNode(ExpNode):
         if self._observer:
             self._observer.unbind()
         self._cached_val = value
-        self._observer = observe(self._cached_val,self._change_attr_handler,ignore_errors=True)
+        self._observer = observe(self._cached_val, self._change_attr_handler, ignore_errors=True)
         self.defined = True
 
     def bind_ctx(self, context):
@@ -1017,7 +1024,7 @@ def partial_eval(arg_stack, op_stack, pri=-1):
         higher priority then @pri, they are converted to OpNodes/AttrAccessNodes with
         arguments taken from the @arg_stack. The result is always placed back on the @arg_stack"""
     while len(op_stack) > 0 and pri <= OP_PRIORITY[op_stack[-1][1]]:
-        token, operator = op_stack.pop()
+        _token, operator = op_stack.pop()
         try:
             arg_r = arg_stack.pop()
             if operator in OpNode.UNARY:
@@ -1039,7 +1046,7 @@ def parse_args(token_stream):
     kwargs = {}
     state = 'args'
     while state == 'args':
-        arg, endt, pos = _parse(token_stream, [T_COMMA, T_EQUAL, T_RPAREN])
+        arg, endt, _pos = _parse(token_stream, [T_COMMA, T_EQUAL, T_RPAREN])
         if endt == T_EQUAL:
             state = 'kwargs'
         elif endt == T_RPAREN:
@@ -1047,11 +1054,11 @@ def parse_args(token_stream):
             return args, kwargs
         else:
             args.append(arg)
-    val, endt, pos = _parse(token_stream, [T_COMMA, T_RPAREN])
+    val, endt, _pos = _parse(token_stream, [T_COMMA, T_RPAREN])
     kwargs[arg._ident] = val
     while endt != T_RPAREN:
-        arg, endt, pos = _parse(token_stream, [T_EQUAL])
-        val, endt, pos = _parse(token_stream, [T_COMMA, T_RPAREN])
+        arg, endt, _pos = _parse(token_stream, [T_EQUAL])
+        val, endt, _pos = _parse(token_stream, [T_COMMA, T_RPAREN])
         kwargs[arg._ident] = val
     return args, kwargs
 
@@ -1059,20 +1066,20 @@ def parse_args(token_stream):
 def parse_lst(token_stream):
     """ Parses a list constant or list comprehension from the token_stream
         and returns the appropriate node """
-    elem, endt, pos = _parse(token_stream, [T_RBRACKET, T_COMMA, T_KEYWORD])
+    elem, endt, _pos = _parse(token_stream, [T_RBRACKET, T_COMMA, T_KEYWORD])
     if endt == T_KEYWORD:
         expr = elem
-        var, endt, pos = _parse(token_stream, [T_KEYWORD])
-        lst, endt, pos = _parse(token_stream, [T_KEYWORD, T_RBRACKET])
+        var, endt, _pos = _parse(token_stream, [T_KEYWORD])
+        lst, endt, _pos = _parse(token_stream, [T_KEYWORD, T_RBRACKET])
         if endt == T_KEYWORD:
-            cond, endt, pos = _parse(token_stream, [T_RBRACKET])
+            cond, endt, _pos = _parse(token_stream, [T_RBRACKET])
         else:
             cond = None
         return ListComprNode(expr, var, lst, cond)
     else:
         lst = [elem]
         while endt != T_RBRACKET:
-            elem, endt, pos = _parse(token_stream, [T_RBRACKET, T_COMMA, T_KEYWORD])
+            elem, endt, _pos = _parse(token_stream, [T_RBRACKET, T_COMMA, T_KEYWORD])
             lst.append(elem)
         return ListNode(lst)
 
@@ -1081,12 +1088,12 @@ def parse_slice(token_stream):
     """ Parses a slice (e.g. a:b:c) or index from the token_stream and returns the slice as a quadruple,
         the first element of which indicates whether it is a slice (True) or an index (False)
     """
-    index_s, endt, pos = _parse(token_stream, [T_COLON, T_RBRACKET])
+    index_s, endt, _pos = _parse(token_stream, [T_COLON, T_RBRACKET])
     if endt == T_COLON:
         is_slice = True
-        index_e, endt, pos = _parse(token_stream, [T_RBRACKET, T_COLON])
+        index_e, endt, _pos = _parse(token_stream, [T_RBRACKET, T_COLON])
         if endt == T_COLON:
-            step, endt, pos = _parse(token_stream, [T_RBRACKET])
+            step, endt, _pos = _parse(token_stream, [T_RBRACKET])
         else:
             step = None
     else:
@@ -1099,29 +1106,33 @@ def parse_slice(token_stream):
 def parse_interpolated_str(tpl_expr):
     """ Parses a string of the form
 
+        ```
           Test text {{ exp }} other text {{ exp2 }} final text.
+        ```
 
         where `exp` and `exp2` are expressions and returns a list of asts
         representing the expressions:
 
+        ```
           ["Test text ",str(exp)," other text ",str(exp2)," final text."]
+        ```
     """
     last_pos = 0
     abs_pos = tpl_expr.find("{{", 0)
     token_stream = tokenize(tpl_expr[abs_pos + 2:])
     ret = []
     while abs_pos > -1:
-        ret.append(ConstNode(tpl_expr[last_pos:abs_pos]))                   # Get string from last }} to current {{
-        abs_pos += 2                                                        # Skip '{{'
-        token_stream = tokenize(tpl_expr[abs_pos:])                         # Tokenize string from {{ to the ending }}
-        ast, etok, rel_pos = _parse(token_stream, end_tokens=[T_RBRACE])
-        abs_pos += rel_pos                                                  # Move to the second ending brace of the expression
+        ret.append(ConstNode(tpl_expr[last_pos:abs_pos]))                    # Get string from last }} to current {{
+        abs_pos += 2                                                         # Skip '{{'
+        token_stream = tokenize(tpl_expr[abs_pos:])                          # Tokenize string from {{ to the ending }}
+        ast, _etok, rel_pos = _parse(token_stream, end_tokens=[T_RBRACE])
+        abs_pos += rel_pos                                                   # Move to the second ending brace of the expression
         if not tpl_expr[abs_pos] == "}":
             raise Exception("Invalid interpolated string, expecting '}' at " +
                             str(abs_pos) + " got '" + str(tpl_expr[abs_pos]) + "' instead.")
         else:
-            abs_pos += 1                                                    # Skip the ending '}'
-        ret.append(OpNode("()", IdentNode("str"), FuncArgsNode([ast], {}))) # Wrap the expression in a str call and add it to the list
+            abs_pos += 1                                                     # Skip the ending '}'
+        ret.append(OpNode("()", IdentNode("str"), FuncArgsNode([ast], {})))  # Wrap the expression in a str call and add it to the list
         last_pos = abs_pos
         abs_pos = tpl_expr.find("{{", last_pos)
     if len(tpl_expr) > last_pos:
@@ -1133,11 +1144,26 @@ _PARSE_CACHE = {}
 
 
 def parse(expr, trailing_garbage_ok=False, use_cache=True):
+    """
+        Parses the expression :param:`expr` into an AST tree of
+        :class:`ExpNode` instances. If trailing_garbage_ok is set
+        to `False`, the string must be a valid expression (otherwise
+        an exception is thrown). If it is set to false, only an initial
+        part of the string needs to be a valid expression. The
+        function returns a tuple consisting of the root node
+        of the AST tree and the position in the string ``expr`` where
+        parsing stopped.
+
+        Additionnaly, the method maintains a cache of parsed expressions
+        and, unless the parameter :parameter:`use_cache` is set to
+        ``False``, the parsed trees are first looked up in this cache
+        and, if present, a clone is returned.
+    """
     if (expr, trailing_garbage_ok) in _PARSE_CACHE and use_cache:
         ast, pos = _PARSE_CACHE[(expr, trailing_garbage_ok)]
         return ast.clone(), pos
     token_stream = tokenize(expr)
-    ast, etok, pos = _parse(token_stream, trailing_garbage_ok=trailing_garbage_ok)
+    ast, _etok, pos = _parse(token_stream, trailing_garbage_ok=trailing_garbage_ok)
     if use_cache:
         _PARSE_CACHE[(expr, True)] = ast, pos
     return ast, pos
@@ -1224,7 +1250,7 @@ def _parse(token_stream, end_tokens=[], trailing_garbage_ok=False):
                     raise Exception("Invalid expression, leftovers: args:"+str(arg_stack)+"ops:"+str(op_stack))
                 return arg_stack[0], None, pos
             else:
-                raise Exception("Unexpected token "+str((token,val))+" at "+str(pos))
+                raise Exception("Unexpected token "+str((token, val))+" at "+str(pos))
         if not prev_token_set:
             prev_token = token
         else:

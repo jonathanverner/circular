@@ -1,5 +1,5 @@
 """
-    Provides the ``InterpolatedAttrsPlugin`` plugin class which takes care
+    Provides the :class:`InterpolatedAttrsPlugin` plugin class which takes care
     of interpolated element attributes, e.g. the ``class`` attribute of
     the following element:
 
@@ -19,6 +19,14 @@ from .tag import TagPlugin
 
 
 class InterpolatedAttrsPlugin(TagPlugin):
+    """
+    The :class:`InterpolatedAttrsPlugin` takes care of interpolating
+    element attributes, e.g. the ``class`` attribute of the following element:
+
+    ```
+        <span class='bold {{ classes }}'>
+    ```
+    """
 
     def __init__(self, tpl_element):
         super().__init__(tpl_element)

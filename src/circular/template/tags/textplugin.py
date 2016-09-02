@@ -1,3 +1,21 @@
+"""
+    Provides string interpolation on text dom-nodes, e.g. converts
+
+    ```
+        <div>
+                Hello {{ name }} {{ surname}}!
+        </div>
+    ```
+
+    assuming the context variable ``name`` is set to ``"John""``
+    and ``surname`` to ``"Smith"`` into
+
+    ```
+        <div>
+                Hello John Smith
+        </div>
+    ```
+"""
 try:
     from ..interpolatedstr import InterpolatedStr
 except:
@@ -7,6 +25,9 @@ from .tag import TagPlugin
 
 
 class TextPlugin(TagPlugin):
+    """
+        Provides string interpolation on text dom-nodes.
+    """
 
     def __init__(self, tpl_element):
         super().__init__(tpl_element)
@@ -14,14 +35,14 @@ class TextPlugin(TagPlugin):
         if isinstance(tpl_element, TextPlugin):
             if tpl_element.interpolated_str is not None:
                 self.interpolated_str = tpl_element.interpolated_str.clone()
-                self.interpolated_str.bind('change',self._self_change_chandler)
+                self.interpolated_str.bind('change', self._self_change_chandler)
             else:
                 self._dirty_self = False
                 self._dirty_subtree = False
         else:
             if '{{' in tpl_element.text:
                 self.interpolated_str = InterpolatedStr(tpl_element.text)
-                self.interpolated_str.bind('change',self._self_change_chandler)
+                self.interpolated_str.bind('change', self._self_change_chandler)
             else:
                 self._dirty_self = False
                 self._dirty_subtree = False
@@ -43,7 +64,10 @@ class TextPlugin(TagPlugin):
             self._dirty_self = False
 
     def __repr__(self):
+        # pylint: disable=protected-access; (we abuse the fact that we know interpolated_str a bit; in principle, this should
+        #                                    be fixed, but since __repr__ is not to be used in user-facing code, it should be
+        #                                    fine for the moment)
         if self.interpolated_str is not None:
-            return "<Text '"+self.interpolated_str._src.replace("\n","\\n")+"' => '"+self.element.text.replace("\n","\\n")+"'>"
+            return "<Text '"+self.interpolated_str._src.replace("\n", "\\n")+"' => '"+self.element.text.replace("\n", "\\n")+"'>"
         else:
             return "<Text '" + self.element.text.replace("\n", "\\n") + "'>"

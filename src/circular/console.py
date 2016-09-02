@@ -1,3 +1,6 @@
+"""
+    This module provides the interactive Python console.
+"""
 import sys
 import traceback
 
@@ -140,7 +143,9 @@ POSSIBILITY OF SUCH DAMAGE.
         self._elem.scrollTop = self._elem.scrollHeight
 
     def get_col(self, area):
-        # returns the column num of cursor
+        """
+            returns the column position of the cursor
+        """
         sel = self._elem.selectionStart
         lines = self._elem.value.split('\n')
         for line in lines[:-1]:

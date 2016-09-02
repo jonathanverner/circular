@@ -4,7 +4,6 @@
 import re
 
 
-
 try:
     from ..tpl import _compile, register_plugin
     from ..expression import parse
@@ -56,8 +55,8 @@ class For(TagPlugin):
             <li>4</li>
         ```
     """
-    SPEC_RE = re.compile(r'^\s*(?P<loop_var>[^ ]*)\s*in\s*(?P<sequence_exp>.*)$',re.IGNORECASE)
-    COND_RE = re.compile(r'\s*if\s(?P<condition>.*)$',re.IGNORECASE)
+    SPEC_RE = re.compile(r'^\s*(?P<loop_var>[^ ]*)\s*in\s*(?P<sequence_exp>.*)$', re.IGNORECASE)
+    COND_RE = re.compile(r'\s*if\s(?P<condition>.*)$', re.IGNORECASE)
     PRIORITY = 1000  # The for plugin should be processed before all the others
 
     def __init__(self, tpl_element, loop_spec=None):
@@ -86,7 +85,7 @@ class For(TagPlugin):
         self._exp.bind('change', self._self_change_chandler)
 
     def _clear(self):
-        for (child, elem) in self.children:
+        for (child, _elem) in self.children:
             child.unbind()
         self.children = []
 
@@ -96,6 +95,8 @@ class For(TagPlugin):
         self._exp.bind_ctx(self._ctx)
         try:
             lst = self._exp.eval()
+        # pylint: disable=broad-except; the For plugin must not choke on exceptions from user expressions and
+        #                               these can potentially be arbitrary
         except Exception as exc:
             logger.exception(exc)
             logger.warn("Exception", exc, "when computing list", self._exp, "with context", self._ctx)

@@ -46,6 +46,7 @@ class TagPlugin(EventMixin):
         """
         super().__init__()
         if isinstance(tpl_element, TagPlugin):
+            # pylint: disable=protected-access; we know that tpl_element has to have an _orig_clone since it is a TagPlugin
             self._orig_clone = tpl_element._orig_clone.clone()
         else:
             self._orig_clone = tpl_element.clone()

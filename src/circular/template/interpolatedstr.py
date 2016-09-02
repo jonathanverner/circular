@@ -1,3 +1,8 @@
+"""
+    This module provides the :class:`InterpolatedStr` class which
+    can be used to interpolate complex strings with multiple
+    instances of ``{{ }}``-type circular expressions.
+"""
 try:
     from ..utils.events import EventMixin
 except:
@@ -7,6 +12,29 @@ from .expression import parse_interpolated_str
 
 
 class InterpolatedStr(EventMixin):
+    """
+        The :class:`InterpolatedStr` manages string interpolations.
+        Use it as follows:
+
+        ```
+            from circular.template.context import Context
+            from circular.template.interpolatedstr import InterpolatedStr
+
+            c = context()
+            istr = InterpolatedStr("Hello {{name}}, {{surname}}!")
+            assert istr.value == "Hello , !"
+            c.name = "John"
+            assert istr.value == "Hello John, !"
+            c.name = "Smith"
+            assert istr.value == "Hello John, Smith!"
+        ```
+
+        The class tries to do some clever tricks to only evaluate the
+        subexpressions which have changed due to a given context change.
+        (e.g. c.name='Anne' would not affect the second expresssion in
+        the above example).
+
+    """
 
     def __init__(self, string):
         super().__init__()
@@ -20,7 +48,7 @@ class InterpolatedStr(EventMixin):
             self.asts = parse_interpolated_str(string)
 
         for i in range(len(self.asts)):
-            self.asts[i].bind('change', lambda event:self._change_chandler(event,i))
+            self.asts[i].bind('change', lambda event: self._change_chandler(event, i))
 
         self._dirty = True
         self._dirty_vals = True

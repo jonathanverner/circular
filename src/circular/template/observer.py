@@ -19,8 +19,8 @@
     Where the last line will result in a call to the change_handler.
 
     WARNING: Only user-defined classes may be observed, not plain lists, dicts, etc.
-    The module provides simple wrappers around ``dict`` and ``list`` which
-    can be observed.
+    The module provides simple wrappers around ``dict`` (:class:`DictProxy`) and ``list`` 
+    (:class:`ListProxy`) which can be observed.
 
 """
 from circular.utils.events import EventMixin
@@ -39,6 +39,11 @@ def extend_instance(obj, cls):
 
 
 class ObjMixin(object):
+    """
+        A mixin for observing general objects. Modifies
+        the various methods which could change the object
+        to emit an change event before calling the original method.
+    """
 
     def _create_observer(self):
         if not hasattr(self, '_obs____'):
@@ -76,6 +81,11 @@ class ObjMixin(object):
 
 
 class ArrayMixin(object):
+    """
+        A mixin for observing an list/dict style classes. Modifies
+        the various methods which could change the object
+        to emit an change event before calling the original method.
+    """
 
     def _create_observer(self):
         if not hasattr(self, '_obs____'):
@@ -216,6 +226,9 @@ class ArrayMixin(object):
 
 
 class ListProxy(list):
+    """
+        A wrapper around list objects for making them observable
+    """
 
     def __init__(self, lst):
         this = []
@@ -230,6 +243,9 @@ class ListProxy(list):
 
 
 class DictProxy(dict):
+    """
+        A wrapper around dict objects for making them observable
+    """
 
     def __init__(self, dct):
         this = {}

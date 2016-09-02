@@ -6,188 +6,193 @@ import src.circular.template.expression as exp
 from src.circular.template.context import Context
 
 
-
-
 def test_parse_number():
-    assert exp.parse_number(" 123.5.6",1) == (123.5,6)
-    assert exp.parse_number(" 123.5z",1) == (123.5,6)
-    assert exp.parse_number(" -123.5z",1) == (-123.5,7)
+    assert exp.parse_number(" 123.5.6", 1) == (123.5, 6)
+    assert exp.parse_number(" 123.5z", 1) == (123.5, 6)
+    assert exp.parse_number(" -123.5z", 1) == (-123.5, 7)
+
 
 def test_parse_string():
-    assert exp.parse_string("'ahoj\\''",0) == ("ahoj\'",8)
-    assert exp.parse_string('"123456"',0) == ("123456",8)
-    assert exp.parse_string('"\\\\3456"',0) == ("\\3456",8)
+    assert exp.parse_string("'ahoj\\''", 0) == ("ahoj\'", 8)
+    assert exp.parse_string('"123456"', 0) == ("123456", 8)
+    assert exp.parse_string('"\\\\3456"', 0) == ("\\3456", 8)
+
 
 def test_tokenize():
     tl = list(exp.tokenize("a - b"))
     assert tl == [
-        (exp.T_IDENTIFIER,"a",1),
-        (exp.T_OPERATOR,"-",3),
-        (exp.T_IDENTIFIER,"b",5),
+        (exp.T_IDENTIFIER, "a", 1),
+        (exp.T_OPERATOR, "-", 3),
+        (exp.T_IDENTIFIER, "b", 5),
     ]
     tl = list(exp.tokenize("'123'+123.5==[ahoj]"))
-    assert  tl == [
-           (exp.T_STRING,"123",5),
-           (exp.T_OPERATOR,"+",6),
-           (exp.T_NUMBER,123.5,11),
-           (exp.T_OPERATOR,'==',13),
-           (exp.T_LBRACKET,'[',14),
-           (exp.T_IDENTIFIER,'ahoj',18),
-           (exp.T_RBRACKET,']',19)
+    assert tl == [
+           (exp.T_STRING, "123", 5),
+           (exp.T_OPERATOR, "+", 6),
+           (exp.T_NUMBER, 123.5, 11),
+           (exp.T_OPERATOR, '==', 13),
+           (exp.T_LBRACKET, '[', 14),
+           (exp.T_IDENTIFIER, 'ahoj', 18),
+           (exp.T_RBRACKET, ']', 19)
     ]
     tl = list(exp.tokenize("a is   not b"))
-    assert  tl == [
-           (exp.T_IDENTIFIER,"a",1),
-           (exp.T_OPERATOR,"is not",10),
-           (exp.T_IDENTIFIER,'b',12),
+    assert tl == [
+           (exp.T_IDENTIFIER, "a", 1),
+           (exp.T_OPERATOR, "is not", 10),
+           (exp.T_IDENTIFIER, 'b', 12),
     ]
     tl = list(exp.tokenize("a is       b"))
-    assert  tl == [
-           (exp.T_IDENTIFIER,"a",1),
-           (exp.T_OPERATOR,"is",4),
-           (exp.T_IDENTIFIER,'b',12),
+    assert tl == [
+           (exp.T_IDENTIFIER, "a", 1),
+           (exp.T_OPERATOR, "is", 4),
+           (exp.T_IDENTIFIER, 'b', 12),
     ]
     tl = list(exp.tokenize("a !=       b"))
-    assert  tl == [
-           (exp.T_IDENTIFIER,"a",1),
-           (exp.T_OPERATOR,"!=",4),
-           (exp.T_IDENTIFIER,'b',12),
+    assert tl == [
+           (exp.T_IDENTIFIER, "a", 1),
+           (exp.T_OPERATOR, "!=", 4),
+           (exp.T_IDENTIFIER, 'b', 12),
     ]
     tl = list(exp.tokenize("a <=       b"))
-    assert  tl == [
-           (exp.T_IDENTIFIER,"a",1),
-           (exp.T_OPERATOR,"<=",4),
-           (exp.T_IDENTIFIER,'b',12),
+    assert tl == [
+           (exp.T_IDENTIFIER, "a", 1),
+           (exp.T_OPERATOR, "<=", 4),
+           (exp.T_IDENTIFIER, 'b', 12),
     ]
     tl = list(exp.tokenize("a =       b"))
-    assert  tl == [
-           (exp.T_IDENTIFIER,"a",1),
-           (exp.T_EQUAL,"=",3),
-           (exp.T_IDENTIFIER,'b',11),
+    assert tl == [
+           (exp.T_IDENTIFIER, "a", 1),
+           (exp.T_EQUAL, "=", 3),
+           (exp.T_IDENTIFIER, 'b', 11),
     ]
     tl = list(exp.tokenize("a <       b"))
-    assert  tl == [
-           (exp.T_IDENTIFIER,"a",1),
-           (exp.T_OPERATOR,"<",3),
-           (exp.T_IDENTIFIER,'b',11),
+    assert tl == [
+           (exp.T_IDENTIFIER, "a", 1),
+           (exp.T_OPERATOR, "<", 3),
+           (exp.T_IDENTIFIER, 'b', 11),
     ]
     tl = list(exp.tokenize("for a in lst"))
-    assert  tl == [
-           (exp.T_KEYWORD,"for",3),
-           (exp.T_IDENTIFIER,"a",5),
-           (exp.T_KEYWORD,'in',8),
-           (exp.T_IDENTIFIER,'lst',12),
+    assert tl == [
+           (exp.T_KEYWORD, "for", 3),
+           (exp.T_IDENTIFIER, "a", 5),
+           (exp.T_KEYWORD, 'in', 8),
+           (exp.T_IDENTIFIER, 'lst', 12),
     ]
 
-def parse_mock(token_stream,end_tokens=[]):
+
+def parse_mock(token_stream, end_tokens=[]):
     if len(token_stream) == 0:
         raise Exception("End of stream")
-    tok,val,pos = token_stream.pop(0)
+    tok, val, pos = token_stream.pop(0)
     if tok == exp.T_COLON:
         return exp.IdentNode('None'), tok, 0
     elif tok == exp.T_RBRACKET:
         return None, tok, 0
     if tok == exp.T_IDENTIFIER:
-        return exp.IdentNode(val),token_stream.pop(0)[0],0
+        return exp.IdentNode(val), token_stream.pop(0)[0], 0
     else:
-        return exp.ConstNode(val),token_stream.pop(0)[0],0
+        return exp.ConstNode(val), token_stream.pop(0)[0], 0
 
-@patch('src.circular.template.expression._parse',parse_mock)
+
+@patch('src.circular.template.expression._parse', parse_mock)
 def test_parse_args():
     token_stream = [
-        (exp.T_IDENTIFIER,'a',0),
-        (exp.T_COMMA,',',0),
-        (exp.T_IDENTIFIER,'b',0),
-        (exp.T_COMMA,',',0),
-        (exp.T_IDENTIFIER,'c',0),
-        (exp.T_EQUAL,'=',0),
-        (exp.T_NUMBER,123,0),
-        (exp.T_RPAREN,')',0)
+        (exp.T_IDENTIFIER, 'a', 0),
+        (exp.T_COMMA, ',', 0),
+        (exp.T_IDENTIFIER, 'b', 0),
+        (exp.T_COMMA, ',', 0),
+        (exp.T_IDENTIFIER, 'c', 0),
+        (exp.T_EQUAL, '=', 0),
+        (exp.T_NUMBER, 123, 0),
+        (exp.T_RPAREN, ')', 0)
     ]
-    assert str(exp.parse_args(token_stream)) ==  "([a, b], {'c': 123})"
+    assert str(exp.parse_args(token_stream)) == "([a, b], {'c': 123})"
     token_stream = [
-        (exp.T_IDENTIFIER,'a',0),
-        (exp.T_COMMA,',',0),
-        (exp.T_IDENTIFIER,'b',0),
-        (exp.T_RPAREN,')',0)
+        (exp.T_IDENTIFIER, 'a', 0),
+        (exp.T_COMMA, ',', 0),
+        (exp.T_IDENTIFIER, 'b', 0),
+        (exp.T_RPAREN, ')', 0)
     ]
-    assert str(exp.parse_args(token_stream)) ==  "([a, b], {})"
+    assert str(exp.parse_args(token_stream)) == "([a, b], {})"
     token_stream = [
-        (exp.T_IDENTIFIER,'a',0),
-        (exp.T_EQUAL,'=',0),
-        (exp.T_IDENTIFIER,'b',0),
-        (exp.T_RPAREN,')',0)
+        (exp.T_IDENTIFIER, 'a', 0),
+        (exp.T_EQUAL, '=', 0),
+        (exp.T_IDENTIFIER, 'b', 0),
+        (exp.T_RPAREN, ')', 0)
     ]
-    assert str(exp.parse_args(token_stream)) ==  "([], {'a': b})"
+    assert str(exp.parse_args(token_stream)) == "([], {'a': b})"
 
-@patch('src.circular.template.expression._parse',parse_mock)
+
+@patch('src.circular.template.expression._parse', parse_mock)
 def test_parse_lst():
     token_stream = [
-        (exp.T_IDENTIFIER,'a',0),
-        (exp.T_COMMA,',',0),
-        (exp.T_NUMBER,123,0),
-        (exp.T_COMMA,',',0),
-        (exp.T_STRING,'ahoj',0),
-        (exp.T_RBRACKET,']',0)
+        (exp.T_IDENTIFIER, 'a', 0),
+        (exp.T_COMMA, ',', 0),
+        (exp.T_NUMBER, 123, 0),
+        (exp.T_COMMA, ',', 0),
+        (exp.T_STRING, 'ahoj', 0),
+        (exp.T_RBRACKET, ']', 0)
     ]
     assert str(exp.parse_lst(token_stream)) == "[a, 123, 'ahoj']"
     token_stream = [
-        (exp.T_IDENTIFIER,'a',0),
-        (exp.T_KEYWORD,'for',0),
-        (exp.T_IDENTIFIER,'a',0),
-        (exp.T_KEYWORD,'in',0),
-        (exp.T_IDENTIFIER,'lst',0),
-        (exp.T_RBRACKET,']',0)
+        (exp.T_IDENTIFIER, 'a', 0),
+        (exp.T_KEYWORD, 'for', 0),
+        (exp.T_IDENTIFIER, 'a', 0),
+        (exp.T_KEYWORD, 'in', 0),
+        (exp.T_IDENTIFIER, 'lst', 0),
+        (exp.T_RBRACKET, ']', 0)
     ]
-    c=exp.parse_lst(token_stream)
-    assert str(c) ==  "[a for a in lst]"
+    c = exp.parse_lst(token_stream)
+    assert str(c) == "[a for a in lst]"
     token_stream = [
-        (exp.T_IDENTIFIER,'a',0),
-        (exp.T_KEYWORD,'for',0),
-        (exp.T_IDENTIFIER,'a',0),
-        (exp.T_KEYWORD,'in',0),
-        (exp.T_IDENTIFIER,'lst',0),
-        (exp.T_KEYWORD,'if',0),
-        (exp.T_IDENTIFIER,'True',0),
-        (exp.T_RBRACKET,']',0)
+        (exp.T_IDENTIFIER, 'a', 0),
+        (exp.T_KEYWORD, 'for', 0),
+        (exp.T_IDENTIFIER, 'a', 0),
+        (exp.T_KEYWORD, 'in', 0),
+        (exp.T_IDENTIFIER, 'lst', 0),
+        (exp.T_KEYWORD, 'if', 0),
+        (exp.T_IDENTIFIER, 'True', 0),
+        (exp.T_RBRACKET, ']', 0)
     ]
-    assert str(exp.parse_lst(token_stream)) ==  "[a for a in lst if True]"
+    assert str(exp.parse_lst(token_stream)) == "[a for a in lst if True]"
 
-@patch('src.circular.template.expression._parse',parse_mock)
+
+@patch('src.circular.template.expression._parse', parse_mock)
 def test_parse_slice():
     token_stream = [
-        (exp.T_IDENTIFIER,'a',0),
-        (exp.T_RBRACKET,']',0)
+        (exp.T_IDENTIFIER, 'a', 0),
+        (exp.T_RBRACKET, ']', 0)
     ]
-    assert str(exp.parse_slice(token_stream)) ==  '(False, a, None, None)'
+    assert str(exp.parse_slice(token_stream)) == '(False, a, None, None)'
     token_stream = [
-        (exp.T_IDENTIFIER,'a',0),
-        (exp.T_COLON,':',0),
-        (exp.T_RBRACKET,']',0)
+        (exp.T_IDENTIFIER, 'a', 0),
+        (exp.T_COLON, ':', 0),
+        (exp.T_RBRACKET, ']', 0)
     ]
-    assert str(exp.parse_slice(token_stream)) ==  '(True, a, None, None)'
+    assert str(exp.parse_slice(token_stream)) == '(True, a, None, None)'
     token_stream = [
-        (exp.T_IDENTIFIER,'a',0),
-        (exp.T_COLON,':',0),
-        (exp.T_NUMBER,123,0),
-        (exp.T_RBRACKET,']',0)
+        (exp.T_IDENTIFIER, 'a', 0),
+        (exp.T_COLON, ':', 0),
+        (exp.T_NUMBER, 123, 0),
+        (exp.T_RBRACKET, ']', 0)
     ]
-    assert str(exp.parse_slice(token_stream)) ==  '(True, a, 123, None)'
+    assert str(exp.parse_slice(token_stream)) == '(True, a, 123, None)'
     token_stream = [
-        (exp.T_COLON,':',0),
-        (exp.T_NUMBER,123,0),
-        (exp.T_RBRACKET,']',0)
+        (exp.T_COLON, ':', 0),
+        (exp.T_NUMBER, 123, 0),
+        (exp.T_RBRACKET, ']', 0)
     ]
-    assert str(exp.parse_slice(token_stream)) ==  '(True, None, 123, None)'
+    assert str(exp.parse_slice(token_stream)) == '(True, None, 123, None)'
     token_stream = [
-        (exp.T_IDENTIFIER,'a',0),
-        (exp.T_COLON,':',0),
-        (exp.T_NUMBER,123,0),
-        (exp.T_COLON,':',0),
-        (exp.T_IDENTIFIER,'b',0),
-        (exp.T_RBRACKET,']',0)
+        (exp.T_IDENTIFIER, 'a', 0),
+        (exp.T_COLON, ':', 0),
+        (exp.T_NUMBER, 123, 0),
+        (exp.T_COLON, ':', 0),
+        (exp.T_IDENTIFIER, 'b', 0),
+        (exp.T_RBRACKET, ']', 0)
     ]
-    assert str(exp.parse_slice(token_stream)) ==  '(True, a, 123, b)'
+    assert str(exp.parse_slice(token_stream)) == '(True, a, 123, b)'
+
 
 def test_parse_interpolated_string():
     ctx = Context()
@@ -243,7 +248,7 @@ def test_parse():
     assert ast.evalctx(ctx) is True
 
     # Test Slices
-    ctx.s="abcde"
+    ctx.s = "abcde"
     ast, _ = exp.parse('s[-1]')
     assert ast.evalctx(ctx) == 'e'
     ast, _ = exp.parse('s[0]')
@@ -283,13 +288,12 @@ def test_parse():
     assert str(ast) == "str(10)"
     del ctx.str
 
-
     # Test Object Access
     ctx.obj = Context()
-    ctx.obj.a=10
-    ctx.obj.b=Context()
-    ctx.obj.b.c=20
-    ctx.obj.d = [Context({'a':30})]
+    ctx.obj.a = 10
+    ctx.obj.b = Context()
+    ctx.obj.b.c = 20
+    ctx.obj.d = [Context({'a': 30})]
 
     ast, _ = exp.parse('obj.a')
     assert ast.evalctx(ctx) == 10
@@ -321,15 +325,14 @@ def test_parse():
     ast, _ = exp.parse('"a,b,c,d".split(",")')
     assert ast.evalctx(ctx) == ['a', 'b', 'c', 'd']
 
-    ctx.func = lambda x,ev:str(x+10)+ev
+    ctx.func = lambda x, ev: str(x+10)+ev
     ctx.ch = 20
     ctx.s = 'Hi'
     ast, _ = exp.parse("func(ch,ev=s)")
     ast.bind_ctx(ctx)
-    ctx.s='Hello'
+    ctx.s = 'Hello'
     assert ast.eval() == '30Hello'
     assert ast.evalctx(ctx) == '30Hello'
-
 
     # Test Complex Expressions
     expr = '(1+2*obj.a - 10)'
@@ -346,6 +349,7 @@ def test_parse():
         ast, _ = exp.parse(expr)
         assert ast.evalctx(ctx) == [-1, -5]
 
+
 def test_is_func():
     ast, _ = exp.parse('(1+1*x)*9')
     assert ast.is_function_call() is False
@@ -358,6 +362,7 @@ def test_is_func():
 
     ast, _ = exp.parse('a.b[10].f(1+1*x)')
     assert ast.is_function_call() is True
+
 
 def test_is_ident():
     ast, _ = exp.parse('(1+1*x)*9')
@@ -399,7 +404,7 @@ def test_is_ident():
 
 class TestCall(object):
 
-    def setup_method(self,method):
+    def setup_method(self, method):
         self.called = False
         self.ctx = Context()
 
@@ -407,7 +412,7 @@ class TestCall(object):
         self.obj = None
         self.event = None
 
-        def handler(x,event):
+        def handler(x, event):
             self.obj = x
             self.event = event
             self.called = True
@@ -425,7 +430,8 @@ class TestCall(object):
 
         a = ast.clone()
         assert a.is_function_call()
-        assert self.called == False
+        assert self.called is False
+
 
 def test_eval_assignment():
     ctx = Context()
@@ -466,7 +472,7 @@ def test_eval_assignment():
     assert ctx.x == 20
 
     # Allow assigning to list elements
-    ctx.lst = [1,2,3]
+    ctx.lst = [1, 2, 3]
     ctx.x = 0
     ast, _ = exp.parse("lst[x]")
     ast.bind_ctx(ctx)
@@ -484,8 +490,9 @@ def test_eval_assignment():
     ast.value = 40
     assert ctx.obj.test == 40
 
+
 class MockObject(object):
-    def __init__(self,depth=0):
+    def __init__(self, depth=0):
         if depth > 0:
             self.child = MockObject(depth-1)
         else:
@@ -494,11 +501,11 @@ class MockObject(object):
 
 class TestExpressionChanges(object):
 
-    def setup_method(self,method):
+    def setup_method(self, method):
         self.ctx = Context()
         self.ctx._clear()
 
-    def prepare(self,expr):
+    def prepare(self, expr):
         self.obs, _ = exp.parse(expr)
         self.obs.bind_ctx(self.ctx)
         try:
@@ -507,7 +514,7 @@ class TestExpressionChanges(object):
             pass
         self.t = TObserver(self.obs)
 
-    def exec_test(self,new):
+    def exec_test(self, new):
         data = self.t.events.pop().data
 
         if new is not None:
@@ -525,9 +532,9 @@ class TestExpressionChanges(object):
         self.prepare("x**2 + x")
         clone = self.obs.clone()
         ctx = Context()
-        ctx.x=0
+        ctx.x = 0
         clone.bind_ctx(ctx)
-        self.ctx.x=1
+        self.ctx.x = 1
         assert clone.value == 0
         assert self.obs.value == 2
 
@@ -537,10 +544,10 @@ class TestExpressionChanges(object):
         self.ctx.c = 0.5
 
         self.prepare("a*x**2 + b*x + c*x")
-        assert self.obs.cache_status == False
-        assert self.obs.defined == False
+        assert self.obs.cache_status is False
+        assert self.obs.defined is False
 
-        self.ctx.d=10
+        self.ctx.d = 10
         assert len(self.t.events) == 0
 
         self.ctx.x = 0
@@ -550,16 +557,16 @@ class TestExpressionChanges(object):
         self.exec_test(-0.5)
 
     def test_comprehension(self):
-        self.ctx.lst = [-4,-3,-2,-1,0,1,2,3,4]
+        self.ctx.lst = [-4, -3, -2, -1, 0, 1, 2, 3, 4]
         self.prepare("[p+1 for p in lst if p%2 == 0]")
-        assert self.obs.cache_status == True
+        assert self.obs.cache_status is True
 
         self.ctx.lst.append(4)
         assert self.obs.cache_status is False
-        self.exec_test([-3,-1,1,3,5,5])
+        self.exec_test([-3, -1, 1, 3, 5, 5])
 
         self.ctx.lst.remove(4)
-        self.exec_test([-3,-1,1,3,5])
+        self.exec_test([-3, -1, 1, 3, 5])
 
         self.ctx.lst.clear()
         self.exec_test([])
@@ -567,7 +574,7 @@ class TestExpressionChanges(object):
     def test_attr_acces(self):
         self.ctx.root = MockObject(depth=3)
         self.prepare("root.child.child.child.leaf and True")
-        assert self.obs.value == True
+        assert self.obs.value is True
         assert self.obs.cache_status is True
 
         self.ctx.root.child.child.child.leaf = False
@@ -578,39 +585,38 @@ class TestExpressionChanges(object):
         self.exec_test(None)
 
     def test_func(self):
-        self.ctx.func = lambda x,y:x+y
+        self.ctx.func = lambda x, y: x+y
         self.prepare("func(a,b)")
-        assert self.obs.cache_status == False
+        assert self.obs.cache_status is False
 
         self.ctx.a = 10
-        assert self.obs.cache_status == False
+        assert self.obs.cache_status is False
 
         self.ctx.b = 20
-        assert self.obs.cache_status == False
+        assert self.obs.cache_status is False
         self.exec_test(30)
 
         self.ctx.b = 30
         self.exec_test(40)
 
-
-        self.ctx.func = lambda x,y:x*y
+        self.ctx.func = lambda x, y: x*y
         self.exec_test(300)
 
         del self.ctx.a
         self.exec_test(None)
 
     def test_array_index(self):
-        self.ctx.lst = [[1,2,3],2,3,4,5]
+        self.ctx.lst = [[1, 2, 3], 2, 3, 4, 5]
         self.ctx.a = 0
         self.prepare("lst[0][a]")
-        self.obs.cache_status == True
+        assert self.obs.cache_status is True
         assert self.obs.value == 1
 
-        self.ctx.lst[1]=2
+        self.ctx.lst[1] = 2
         self.exec_test(1)
-        self.ctx.a=2
+        self.ctx.a = 2
         self.exec_test(3)
-        self.ctx.a=3
+        self.ctx.a = 3
         self.exec_test(None)
         self.ctx.lst[0].append(4)
         self.exec_test(4)

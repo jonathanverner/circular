@@ -48,6 +48,10 @@ class Context(object):
         self._saved = {}
 
     def reset(self, dct):
+        """
+            Clears the current context and for initializes it with
+            the content of :param:`dct`.
+        """
         keys = list(self._dct.keys())
         for k in keys:
             delattr(self, k)

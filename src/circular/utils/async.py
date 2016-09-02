@@ -192,6 +192,7 @@ def get_continuation(generator, result, throw_on_error=False):
         and an error callback (err) for implementing the async decorator.
     """
     def run(val):
+        # pylint: disable=bare-except
         try:
             promise = generator.send(val)
             if isinstance(promise, Return):
@@ -203,10 +204,10 @@ def get_continuation(generator, result, throw_on_error=False):
         except StopIteration:
             result._finish(None)
         except Exception as ex:
-            # pylint: disable=bare-except
             result._finish(ex, status=Promise.STATUS_ERROR)
 
     def error(ex):
+        # pylint: disable=bare-except
         try:
             if throw_on_error:
                 promise = generator.throw(ex)
@@ -219,9 +220,8 @@ def get_continuation(generator, result, throw_on_error=False):
                 promise.then(succ, err)
         except StopIteration:
             result._finish(None)
-        except Exception as ex:
-            # pylint: disable=bare-except
-            result._finish(ex, status=Promise.STATUS_ERROR)
+        except Exception as internal_ex:
+            result._finish(internal_ex, status=Promise.STATUS_ERROR)
 
     return run, error
 

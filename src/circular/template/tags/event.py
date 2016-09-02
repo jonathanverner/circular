@@ -1,3 +1,13 @@
+"""
+    Provides the :class:`Event` class for handling template constructs
+    like
+
+    ```
+        <input type='submit' tpl-click='method(c)' />
+    ```
+
+    which fire a specified method when the element emits an event.
+"""
 try:
     from ..tpl import _compile, register_plugin
     from ..expression import parse
@@ -12,6 +22,11 @@ from .tag import TagPlugin
 
 
 class Event(TagPlugin):
+    """
+        General Event plugin providing callback services
+        on dom-events fired by the elements on which the
+        plugin is declared.
+    """
     EVENT = ''
 
     def __init__(self, tpl_element, expression=None):
@@ -31,8 +46,8 @@ class Event(TagPlugin):
 
     def bind_event(self):
         if isinstance(self.element, list):
-            for el in self.element:
-                el.bind(self.EVENT, self._event_handler)
+            for elt in self.element:
+                elt.bind(self.EVENT, self._event_handler)
         else:
             self.element.bind(self.EVENT, self._event_handler)
 
@@ -58,6 +73,7 @@ class Event(TagPlugin):
             self.bind_event()
 
     def _event_handler(self, event):
+        # py-lint: disable=bare-except; a tag plugin should not throw!
         logger.log("Handling " + self.EVENT)
         try:
             self.handler.call(event=event)

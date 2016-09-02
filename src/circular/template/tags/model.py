@@ -1,3 +1,7 @@
+"""
+    Provides the :class:`Model` plugin for two-way data binding between
+    context and html input elements.
+"""
 from browser import timer
 
 try:
@@ -34,12 +38,11 @@ class Model(TagPlugin):
         WARNING: The Model plugin must come before any plugin which creates more than one
         element (e.g. the `For` plugin).
     """
-
-
-    def __init__(self, tpl_element,model=None,update_interval=None,update_event='input'):
+    def __init__(self, tpl_element, model=None, update_interval=None, update_event='input'):
         super().__init__(tpl_element)
         self._model_change_timer = None
         self._input_change_timer = None
+        self.element = None
         self._ctx = None
         if isinstance(tpl_element, Model):
             self._update_event = tpl_element._update_event
@@ -72,12 +75,12 @@ class Model(TagPlugin):
         super().bind_ctx(ctx)
         return self.element
 
-    def _defer_model_change(self, event):
+    def _defer_model_change(self, _event):
         if self._model_change_timer is None:
             self._model_change_timer = timer.set_interval(
                 self._model_change, self._update_interval)
 
-    def _defer_input_change(self, event):
+    def _defer_input_change(self, _event):
         if self._input_change_timer is None:
             self._input_change_timer = timer.set_interval(
                 self._input_change, self._update_interval)
@@ -94,7 +97,7 @@ class Model(TagPlugin):
             if not self.element.value == new_val:
                 self.element.value = new_val
 
-    def _input_change(self, event=None):
+    def _input_change(self, _event=None):
         if self.element:
             if self._model.value != self.element.value:
                 if self._input_change_timer:

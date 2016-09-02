@@ -136,7 +136,7 @@ def _compile(tpl_element):
         if tpl_element.nodeName in PLUGINS:
             tplug = PLUGINS[tpl_element.nodeName]
             plugins.append(tplug, [], _build_kwargs(tpl_element, tplug))
-        set_meta = True
+            
         setattr(tpl_element, '_plugins', plugins)
 
     plugins = getattr(tpl_element, '_plugins')
