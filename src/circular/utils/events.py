@@ -1,10 +1,23 @@
+"""
+    The events module provides event dispatching services. The main class
+    is the :class:`EventMixin` class which adds the :method:`bind` and
+    :method:`emit` methods to the class. The :method:`bind` method registers event
+    handlers for different events which are triggered by the :method:`emit`
+    method.
+"""
+
 def generate_forward_handler(obj, forward_event):
-    def handler(ev):
-        obj.emit(forward_event, ev, _forwarded=True)
+    def handler(event):
+        obj.emit(forward_event, event, _forwarded=True)
     return handler
 
 
 class Event:
+    """
+        Event class encapsulating user data (:attribute:`data`)
+        and event specific info (targets, whether it is handled,
+        event id...)
+    """
     _lastid = 0
 
     def __init__(self, name, target, data=None):
@@ -32,11 +45,13 @@ class Event:
         return self.targets[-1]
 
     def __repr__(self):
+        # pylint: disable=line-too-long
         return "<Event "+repr(self.names)+" target:"+repr(self.targets)+"; data:"+repr(self.data)+">"
 
 
 def add_event_mixin(obj):
     """Apply mixins to a class instance after creation"""
+    # pylint: disable=protected-access
     base_cls = obj.__class__
     base_cls_name = obj.__class__.__name__
     obj.__class__ = type(base_cls_name, (EventMixin, base_cls), {})
@@ -55,15 +70,16 @@ class EventMixin:
 
     def bind(self, event, handler, forward_event=None):
         """
-           Registers an event handler for event. If @forward_event is provided
+           Registers an event handler for event. If :param:`forward_event` is provided
            and handler is an object, registers a handler which emits the
-           event @forward_event on object @handler whenever the current object
-           emits the event @event.
+           event :param:`forward_event` on object :param:`handler` whenever the current object
+           emits the event :param:`event`.
         """
+        # pylint: disable=protected-access
         if forward_event is not None and isinstance(handler, EventMixin):
-            h = generate_forward_handler(handler, forward_event)
-            handler._forwarding_from_objects.append((self, h, event))
-            handler = h
+            generated_handler = generate_forward_handler(handler, forward_event)
+            handler._forwarding_from_objects.append((self, generated_handler, event))
+            handler = generated_handler
 
         if event not in self._event_handlers:
             self._event_handlers[event] = []
@@ -73,19 +89,19 @@ class EventMixin:
         """
            Stops forwarding events which satisfy the following:
 
-           1. If @only_event is None the rule is satisfied. Otherwise the event
-           satisfies the rule if it is equal to @only_event.
+           1. If :param:`only_event` is ``None`` the rule is satisfied. Otherwise the event
+           satisfies the rule if it is equal to :param:`only_event`.
 
-           2. If @only_obj is None the rule is satisfied. Otherwise the event
-           satisfies the rule if it originates from object @only_obj
+           2. If :param:`only_obj` is ``None`` the rule is satisfied. Otherwise the event
+           satisfies the rule if it originates from object :param:`only_obj`.
         """
         retain = []
-        for (obj, h, e) in self._forwarding_from_objects:
-            if (only_event is None or e == only_event) and (
+        for (obj, handler, event) in self._forwarding_from_objects:
+            if (only_event is None or event == only_event) and (
                     only_obj is None or obj == only_obj):
-                obj.unbind(e, h)
+                obj.unbind(event, handler)
             else:
-                retain.append((obj, h, e))
+                retain.append((obj, handler, event))
         self._forwarding_from_objects = retain
 
     def unbind(self, event=None, handler=None):
@@ -101,8 +117,8 @@ class EventMixin:
         """
         if event is None:
             self._event_handlers = {}
-            for (obj, h, event) in self._forwarding_from_objects:
-                obj.unbind(event, h)
+            for (obj, handler, event) in self._forwarding_from_objects:
+                obj.unbind(event, handler)
             self._forwarding_from_objects = []
         else:
             handlers = self._event_handlers.get(event, [])
@@ -130,5 +146,5 @@ class EventMixin:
         else:
             event_data = Event(event, self, event_data)
         handlers = self._event_handlers.get(event, [])
-        for h in handlers:
-            h(event_data)
+        for handler in handlers:
+            handler(event_data)

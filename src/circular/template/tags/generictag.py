@@ -1,7 +1,7 @@
 """
-    Provides the ``GenericTag`` plugin class which corresponds
+    Provides the :class:`GenericTag` plugin class which corresponds
     to a normal non-plugin based template node. The plugin
-    calls ``_compile`` on the child elements and attaches them as
+    calls :function:`_compile` on the child elements and attaches them as
     child template nodes to itself.
 """
 
@@ -19,6 +19,12 @@ from .tag import TagPlugin
 
 
 class GenericTagPlugin(TagPlugin):
+    """
+        The :class:`GenericTag` plugin class corresponds
+        to a normal non-plugin based template node. The plugin
+        calls :function:`_compile` on the child elements and
+        attaches them as child template nodes to itself.
+    """
 
     def _fence(self, node):
         try:
@@ -49,22 +55,22 @@ class GenericTagPlugin(TagPlugin):
 
     def update(self):
         if self._dirty_subtree and self._bound:
-            for ch in self.children:
-                elems = ch.update()
+            for child in self.children:
+                elems = child.update()
                 if elems is not None:
-                    self.replace(ch, elems)
+                    self.replace(child, elems)
             self._dirty_subtree = False
 
     def bind_ctx(self, ctx):
         super().bind_ctx(ctx)
         self.element = self.element.clone()
         self.element.clear()
-        for ch in self.children:
-            rendered_elems = ch.bind_ctx(ctx)
+        for child in self.children:
+            rendered_elems = child.bind_ctx(ctx)
             if not isinstance(rendered_elems, list):
                 rendered_elems = [rendered_elems]
-            self.child_elements[ch] = rendered_elems + [self._fence(ch)]
-            self.element <= self.child_elements[ch]
+            self.child_elements[child] = rendered_elems + [self._fence(child)]
+            self.element <= self.child_elements[child]
         return self.element
 
     def replace(self, child, elems):
