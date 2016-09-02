@@ -582,6 +582,7 @@ class MultiChildNode(ExpNode):
         for ch_index in range(len(self._children)):
             child = self._children[ch_index]
             if child is not None:
+                # FIXME: ch_index will be bound to last value, this does not work !!!
                 child.bind('change', lambda event: self._child_changed(event, ch_index))
 
     def clone(self):
@@ -670,6 +671,7 @@ class FuncArgsNode(MultiChildNode):
         self._cached_kwargs = {}
         self._dirty_kwargs = False
         for (arg, val) in self._kwargs.items():
+            # FIXME: arg will be bound to last value, this does not work !!!
             val.bind('change', lambda event: self._kwarg_change(event, arg))
 
     def clone(self):

@@ -49,6 +49,7 @@ class InterpolatedStr(EventMixin):
             self.asts = parse_interpolated_str(string)
 
         for i in range(len(self.asts)):
+            # FIXME: Wrong closure !!!
             self.asts[i].bind('change', lambda event: self._change_chandler(event, i))
 
         self._dirty = True
