@@ -219,7 +219,7 @@ POSSIBILITY OF SUCH DAMAGE.
                 self._status = "main"
                 try:
                     self._redirect_out()
-                    #_ = exec(block_src, self.editor_ns)
+                    _ = exec(block_src, self.editor_ns)
                     if _ is not None:
                         print(repr(_))
                 except:

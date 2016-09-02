@@ -81,7 +81,7 @@ class Event(TagPlugin):
             logger.exception(ex)
 
     def __repr__(self):
-        ret = "<" + self.EVENT + " " + str(self.handler) + ">"
+        return "<" + self.EVENT + " " + str(self.handler) + ">"
 
 
 class Click(Event):
