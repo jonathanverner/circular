@@ -4,10 +4,15 @@ import traceback
 from browser import window
 
 from .utils.logger import Logger
-logger = Logger(__name__) # pylint: disable=C0103
+logger = Logger(__name__)
 
 
 class Console:
+    """
+        A class providing a console widget. The constructor accepts
+        a domnode which should be a textarea and it takes it over
+        and turns it into a python interactive console.
+    """
     _credits = """    Thanks to CWI, CNRI, BeOpen.com, Zope Corporation and a cast of thousands
     for supporting Python development.  See www.python.org for more information.
 """
@@ -70,7 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
         self.history = []
         self.current = 0
         self._status = "main"  # or "block" if typing inside a block
-        self.currentLine = ""
+        self.current_line = ""
 
         # execution namespace
         self.editor_ns = {
@@ -94,6 +99,13 @@ POSSIBILITY OF SUCH DAMAGE.
         self.cursor_to_end()
 
     def add_to_ns(self, key, value):
+        """
+            Adds key to the console's local scope. Think:
+
+            ```
+               key=value
+            ```
+        """
         self.editor_ns[key] = value
 
     def _redirect_out(self):
@@ -142,23 +154,23 @@ POSSIBILITY OF SUCH DAMAGE.
         elif event.keyCode == 13:  # return
             src = self._elem.value
             if self._status == "main":
-                self.currentLine = src[src.rfind('>>>') + 4:]
+                self.current_line = src[src.rfind('>>>') + 4:]
             elif self._status == "3string":
-                self.currentLine = src[src.rfind('>>>') + 4:]
-                self.currentLine = self.currentLine.replace('\n... ', '\n')
+                self.current_line = src[src.rfind('>>>') + 4:]
+                self.current_line = self.current_line.replace('\n... ', '\n')
             else:
-                self.currentLine = src[src.rfind('...') + 4:]
-            if self._status == 'main' and not self.currentLine.strip():
+                self.current_line = src[src.rfind('...') + 4:]
+            if self._status == 'main' and not self.current_line.strip():
                 self._elem.value += '\n>>> '
                 event.preventDefault()
                 return
             self._elem.value += '\n'
-            self.history.append(self.currentLine)
+            self.history.append(self.current_line)
             self.current = len(self.history)
             if self._status == "main" or self._status == "3string":
                 try:
                     self._redirect_out()
-                    _ = self.editor_ns['_'] = eval(self.currentLine, self.editor_ns)
+                    _ = self.editor_ns['_'] = eval(self.current_line, self.editor_ns)
                     if _ is not None:
                         self.write(repr(_) + '\n')
                     self._elem.value += '>>> '
@@ -174,7 +186,7 @@ POSSIBILITY OF SUCH DAMAGE.
                     elif str(msg) == 'eval() argument must be an expression':
                         try:
                             self._redirect_out()
-                            exec(self.currentLine, self.editor_ns)
+                            exec(self.current_line, self.editor_ns)
                         except:
                             traceback.print_exc(self)
                         finally:
@@ -194,7 +206,7 @@ POSSIBILITY OF SUCH DAMAGE.
                     self._status = "main"
                 finally:
                     self._redirect_out()
-            elif self.currentLine == "":  # end of block
+            elif self.current_line == "":  # end of block
                 block = src[src.rfind('>>>') + 4:].splitlines()
                 block = [block[0]] + [b[4:] for b in block[1:]]
                 block_src = '\n'.join(block)

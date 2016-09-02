@@ -8,7 +8,7 @@
 from browser import html
 
 from circular.utils.logger import Logger
-logger = Logger(__name__) # pylint: disable=C0103
+logger = Logger(__name__)
 
 try:
     from ..tpl import _compile

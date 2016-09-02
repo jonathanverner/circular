@@ -6,5 +6,9 @@ import subprocess, os
 conf = settings(__package__,strip_leading=1)
 
 @task
-def lint():
-    venv(['PYTHONPATH=./src/:./tests/brython/ pylint', 'circular'])
+def lint(report=False):
+    args = ['PYTHONPATH=./src/:./tests/brython/ pylint']
+    if not report:
+        args.append('--reports=n')
+    args.append('circular')
+    venv(args)

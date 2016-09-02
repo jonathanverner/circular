@@ -3,7 +3,7 @@ from browser import websocket
 from .utils.async import Promise, async, Return
 from .utils.logger import Logger
 
-logger = Logger(__name__) # pylint: disable=C0103
+logger = Logger(__name__)
 
 
 class SocketFactory:
