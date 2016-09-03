@@ -57,7 +57,8 @@ class For(TagPlugin):
     """
     SPEC_RE = re.compile(r'^\s*(?P<loop_var>[^ ]*)\s*in\s*(?P<sequence_exp>.*)$', re.IGNORECASE)
     COND_RE = re.compile(r'\s*if\s(?P<condition>.*)$', re.IGNORECASE)
-    PRIORITY = 1000  # The for plugin should be processed before all the others
+    PRIORITY = 100  # The for plugin should be processed before all the others except for
+                    # the template plugin
 
     def __init__(self, tpl_element, loop_spec=None):
         super().__init__(tpl_element)
