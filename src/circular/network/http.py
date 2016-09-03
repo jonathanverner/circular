@@ -1,8 +1,6 @@
 from browser import ajax
 
 from circular.utils.async import Promise, async
-from circular.utils.logger import Logger
-logger = Logger(__name__) # pylint: disable=invalid-name
 
 class HTTPException(Exception):
 

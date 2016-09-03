@@ -31,12 +31,12 @@
 
     eliminating the need to introduce the ``process_results`` callback.
 """
+from logging import getLogger
 
 from .events import EventMixin, Event
 from .decorator import decorator, func_name
 
-from .logger import Logger
-logger = Logger(__name__) # pylint: disable=invalid-name
+logger = getLogger(__name__)  # pylint: disable=invalid-name
 
 
 
@@ -126,13 +126,11 @@ class Promise(EventMixin):
         self._status = status
         if self._status == Promise.STATUS_FINISHED:
             if self._success_handler:
-                logger.debug("Calling success handler with results:", self.result)
                 self._success_handler(self.result)
             self.emit('success', self.result)
             self.unbind()
         elif self._status == Promise.STATUS_ERROR:
             if self._error_handler:
-                logger.debug("Calling error handler with error:", self.result)
                 self._error_handler(self.result)
             self.emit('error', self.result)
             self.unbind()
@@ -222,8 +220,8 @@ def async_init(init):
         A decorator for asynchronous constructors.
     """
     def new_init(self, *args, **kwargs):
-        logger.debug("Calling decorated init for ", self.__class__.__name__)
-        logger.debug("INIT PROMISE FOR", self.__class__.__name__, ":", self._init_promise)
+        logger.debug("Calling decorated init for %s",self.__class__.__name__)
+        logger.debug("INIT PROMISE FOR %s: %s", self.__class__.__name__, str(self._init_promise))
         self._init_promise = async(init)(self, *args, **kwargs)
     return new_init
 
@@ -237,15 +235,12 @@ def defer(promise, func, *args, **kwargs):
     ret = Promise()
 
     def on_success(event):
-        logger.info("Calling deferred method ", func_name(func), " object is initialized.")
-        logger.info("Args:", args)
-        logger.info("Kwargs:", kwargs)
         ret._finish(func(*args, **kwargs))
 
     def on_error(event):
         # pylint: disable=line-too-long
-        logger.error("Unable to call deferred method ", func_name(func), ", object failed to initialize properly.")
-        logger.error("Event:", event)
+        logger.error("Unable to call deferred method %s object failed to initialize properly.", func_name(func))
+        logger.error("Event: %s", str(event))
         ret._finish(event.data, status=Promise.STATUS_ERROR)
     if ret.status == Promise.STATUS_FINISHED:
         on_success(Event('success', None, ret._result))
@@ -264,8 +259,7 @@ def _generate_guard(func):
             return func(self, *args, **kwargs)
         else:
             if hasattr(func, '__interruptible'):
-                logger.info("Defering method ", func_name(func), " until object is initialized.")
-                logger.debug("Waiting for promise:", self._init_promise)
+                logger.info("Defering method %s until object is initialized.", func_name(func))
                 return defer(self._init_promise, func, self, *args, **kwargs)
             else:
                 logger.error("Calling method on Uninitialized object")

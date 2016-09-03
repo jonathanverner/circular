@@ -8,7 +8,6 @@ from browser.html import DIV
 from circular.template.tpl import _compile, register_plugin
 from circular.template.expression import parse
 from circular.template.context import Context
-from circular.utils.logger import Logger
 from circular.utils.async import async, async_class, async_init
 from circular.network.http import HTTPRequest
 

@@ -8,6 +8,8 @@
 
     which fire a specified method when the element emits an event.
 """
+from logging import getLogger
+
 try:
     from ..tpl import _compile, register_plugin
     from ..expression import parse
@@ -15,10 +17,9 @@ except:
     from circular.template.tpl import _compile, register_plugin
     from circular.template.expression import parse
 
-from circular.utils.logger import Logger
-logger = Logger(__name__)
-
 from .tag import TagPlugin
+
+logger = getLogger(__name__)
 
 
 class Event(TagPlugin):
@@ -75,11 +76,10 @@ class Event(TagPlugin):
     def _event_handler(self, event):
         # py-lint: disable=bare-except; a tag plugin should not throw!
         # py-lint: disable=broad-except
-        logger.log("Handling " + self.EVENT)
         try:
             self.handler.call(event=event)
         except Exception as ex:
-            logger.exception(ex)
+            logger.error("Exception during handling "+self.EVENT+":"+str(ex))
 
     def __repr__(self):
         return "<" + self.EVENT + " " + str(self.handler) + ">"

@@ -13,12 +13,6 @@ except:
 
 from .tag import TagPlugin
 
-try:
-    from ...utils.logger import Logger
-except:
-    from circular.utils.logger import Logger
-logger = Logger(__name__)
-
 
 class Model(TagPlugin):
     """

@@ -2,23 +2,21 @@
     Provides the For template plugin for looping constructs.
 """
 import re
+from logging import getLogger
 
 
 try:
     from ..tpl import _compile, register_plugin
     from ..expression import parse
     from ..context import Context
-    from ...utils.logger import Logger
 except:
     from circular.template.tpl import _compile, register_plugin
     from circular.template.expression import parse
     from circular.template.context import Context
-    from circular.utils.logger import Logger
-
-logger = Logger(__name__)
-
 
 from .tag import TagPlugin
+
+logger = getLogger(__name__)
 
 
 class For(TagPlugin):
@@ -100,8 +98,8 @@ class For(TagPlugin):
         # pylint: disable=broad-except; the For plugin must not choke on exceptions from user expressions and
         #                               these can potentially be arbitrary
         except Exception as exc:
-            logger.exception(exc)
-            logger.warn("Exception", exc, "when computing list", self._exp, "with context", self._ctx)
+            logger.warn("Exception %s when computing list %s with context %s",
+                        str(exc), str(self._exp), str(self._ctx))
             lst = []
         ret = []
         for item in lst:
@@ -116,8 +114,8 @@ class For(TagPlugin):
             # pylint: disable=broad-except; the For plugin must not choke on exceptions from user conditions; these
             #                               can be arbitrary
             except Exception as exc:
-                logger.exception(exc)
-                logger.warn("Exception", exc, "when evaluating condition", self._cond, "with context", item_ctx)
+                logger.warn("Exception %s when evaluating condition %s with context %s",
+                            str(exc), str(self._cond), str(item_ctx))
         return ret
 
     def update(self):

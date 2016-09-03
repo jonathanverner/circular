@@ -6,9 +6,6 @@ import traceback
 
 from browser import window
 
-from .utils.logger import Logger
-logger = Logger(__name__)
-
 
 class Console:
     """
