@@ -14,7 +14,6 @@ from circular.network.http import HTTPRequest
 from .tag import TagPlugin
 
 
-@async_class
 class TemplatePlugin(TagPlugin):
     """
         The template plugin allows defining templates which can be included
@@ -25,16 +24,6 @@ class TemplatePlugin(TagPlugin):
                 <a href='person.url'>{{ person.name}}</a>
             </div>
         ```
-
-        Alternatively one could load the plugin from an url:
-
-        ```
-            <tpl-template name='avatar' src='templates/avatar.tpl'/>
-        ```
-
-        The second form differs from the first in that the result does
-        not include the template tag, while the first includes the
-        tag with the template attribute on it.
 
         Once the template is defined, one can use the :class:`Include`
         plugin to use the template:
@@ -56,25 +45,18 @@ class TemplatePlugin(TagPlugin):
     NAME = 'Template'
     PRIORITY = 200  # The template plugin should be processed before all the others
 
-    @async_init
-    def __init__(self, tpl_element, name, src=None):
+    def __init__(self, tpl_element, name):
         super().__init__(tpl_element)
-        if src is not None:
-            tpl_src = yield HTTPRequest(src, throw_on_error=False)
-            tpl_element.set_html(tpl_src)
         self._template = _compile(tpl_element)
         self._name = name
 
-    @async
     def bind(self, ctx):
         ctx.circular.TEMPLATE_CACHE[self._name] = self
 
-    @async
     def instantiate(self, ctx):
         tpl_clone = self._template.clone()
         return tpl_clone
 
-    @async
     def clone(self):
         return self
 
@@ -82,7 +64,6 @@ class TemplatePlugin(TagPlugin):
         pass
 
 
-@async_class
 class Include(TagPlugin):
     """
         The :class:`Include` plugin allows instantiating templates
@@ -103,7 +84,7 @@ class Include(TagPlugin):
         ```
 
     """
-    @async_init
+
     def __init__(self, tpl_element, name=None):
         super().__init__(tpl_element)
         if isinstance(tpl_element, Include):
@@ -111,17 +92,10 @@ class Include(TagPlugin):
         else:
             self._name = name
 
-    @async
     def bind_ctx(self, ctx):
         super().bind_ctx(ctx)
         self._tpl_instance = ctx.circular.TEMPLATE_CACHE[self._name].instantiate(ctx)
         return self._tpl_instance.bind_ctx(ctx)
 
-    @async
     def update(self):
         return self._tpl_instance.update()
-
-
-
-
-

@@ -39,8 +39,6 @@ from .decorator import decorator, func_name
 logger = getLogger(__name__)  # pylint: disable=invalid-name
 
 
-
-
 class PromiseException(Exception):
 
     def __init__(self, message):
@@ -220,7 +218,7 @@ def async_init(init):
         A decorator for asynchronous constructors.
     """
     def new_init(self, *args, **kwargs):
-        logger.debug("Calling decorated init for %s",self.__class__.__name__)
+        logger.debug("Calling decorated init for %s", self.__class__.__name__)
         logger.debug("INIT PROMISE FOR %s: %s", self.__class__.__name__, str(self._init_promise))
         self._init_promise = async(init)(self, *args, **kwargs)
     return new_init

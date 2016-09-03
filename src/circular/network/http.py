@@ -1,6 +1,11 @@
+"""
+    The http module provides convenience function to interact
+    with the server.
+"""
 from browser import ajax
 
-from circular.utils.async import Promise, async
+from circular.utils.async import Promise, async, Return
+
 
 class HTTPException(Exception):
 

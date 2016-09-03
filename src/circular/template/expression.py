@@ -324,7 +324,7 @@ class ExpNode(EventMixin):
 
             Note: The method can throw; in this case, the value will be undefined
         """
-        pass
+        raise NotImplementedError
 
     def evalctx(self, context):
         """
@@ -334,7 +334,7 @@ class ExpNode(EventMixin):
 
             Note: The method may throw (e.g. KeyError, AttrAcessError, ...)
         """
-        return None
+        raise NotImplementedError
 
     @property
     def cache_status(self):
@@ -402,12 +402,13 @@ class ExpNode(EventMixin):
         """
             Returns a clone of this node which can bind a diffrent context.
         """
-        return ExpNode()
+        raise NotImplementedError
 
     def is_function_call(self):
         """
             Returns true if the expression is a function call.
         """
+        # pylint: disable=no-member; since we explicitely check that we are an OpNode, we can access ``_opstr``
         return isinstance(self, OpNode) and self._opstr == '()'
 
     def is_assignable(self):
@@ -728,6 +729,7 @@ class ListSliceNode(MultiChildNode):
         self._slice = is_slice
 
     def clone(self):
+        # pylint: disable=unbalanced-tuple-unpacking; we know we are a ListSlice so super().clone will return three children
         start_c, end_c, step_c = super().clone()
         return ListSliceNode(self._slice, start_c, end_c, step_c)
 
@@ -745,6 +747,7 @@ class ListSliceNode(MultiChildNode):
         return self._cached_val
 
     def evalctx(self, context):
+        # pylint: disable=unbalanced-tuple-unpacking; we know we are a ListSlice so super().evalctx will return three children
         start, end, step = super().evalctx(context)
         if self._slice:
             return slice(start, end, step)
@@ -980,15 +983,21 @@ class OpNode(ExpNode):
                 self._rarg.evalctx(context))
 
     def call(self, *inject_args, **inject_kwargs):
+        """
+            Assuming the node is a function call, call the function
+            appending :param:`inject_args` to its arguments and updating
+            its kwargs with :param:`inject_kwargs`. Retuns the result
+            of the call.
+        """
         if self._opstr != '()':
             raise Exception("Calling " + repr(self) + " does not make sense.")
         func = self._larg.eval()
-        a, k = self._rarg.eval()
-        args = a.copy()
-        kwargs = k.copy()
-        args.extend(inject_args)
-        kwargs.update(inject_kwargs)
-        return func(*args, **kwargs)
+        args, kwargs = self._rarg.eval()
+        args_copy = args.copy()
+        kwargs_copy = kwargs.copy()
+        args_copy.extend(inject_args)
+        kwargs_copy.update(inject_kwargs)
+        return func(*args_copy, **kwargs_copy)
 
     def _assign(self, value):
         if self._opstr != '[]':
