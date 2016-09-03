@@ -106,7 +106,9 @@ class Context(object):
     def _get(self, name):
         if name in self._dct:
             return self._dct[name]
-        return self._base._get(name)
+        if isinstance(self._base,Context):
+            return self._base._get(name)
+        return self._base[name]
 
     def _set(self, name, val):
         if isinstance(val, list):
