@@ -3,6 +3,7 @@ language: python
 python:
   - "3.4"
 
+cache: pip
 
 # command to install dependencies
 install:
