@@ -1,4 +1,5 @@
 import inspect
+import os
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -37,7 +38,9 @@ def selenium_setup_helper(func):
     script_src = "\n".join(inspect.getsource(script).split('\n')[1:])
     script_src = script_src.replace('    ', '')
     html = inspect.getdoc(script)
-    out = open('tests/selenium/webroot/tests/%s.html' % out_file, 'w')
+    test_dir = os.path.dirname(inspect.getfile(selenium_setup_helper))+'/selenium/webroot/tests'
+
+    out = open('%s/%s.html' % (test_dir, out_file), 'w')
     out.write(tpl.render({
         'test': script_src,
         'title': out_file,
