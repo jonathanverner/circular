@@ -21,10 +21,15 @@ py==1.4.31
 pycparser==2.14
 Pygments==2.1.3
 pylint==1.6.4
-pytest==2.9.2
+pytest==3.0.2
 pytest-cov==2.3.1
+pytest-html==1.10.0
+pytest-selenium==1.3.1
+pytest-variables==1.4
 pytz==2016.6.1
 recommonmark==0.4.0
+requests==2.11.1
+selenium==2.53.6
 sh==1.11
 six==1.10.0
 snowballstemmer==1.2.1

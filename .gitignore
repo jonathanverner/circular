@@ -7,3 +7,7 @@ virtual_env*
 .cache/
 .sass-cache/
 .coverage
+node_modules/.bin/phantomjs
+node_modules/phantomjs
+web_src/bower_components/source-map
+ghostdriver.log
