@@ -10,7 +10,8 @@ def all():
     cleanup()
     with lcd('tests/selenium/webroot'):
         local('python -m SimpleHTTPServer 7000 2>/dev/null >/dev/null &')
-    venv(['PYTHONPATH=./src/:./tests/brython/ python',
+    venv(['PYTHONPATH=./src/:./tests/brython/',
+          'python',
           '-m pytest',
           '-rw',
           '--driver PhantomJS',
