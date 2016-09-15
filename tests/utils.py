@@ -35,8 +35,10 @@ def selenium_setup_helper(func):
     mod = inspect.getmodule(func)
     script = getattr(mod, 'script_'+func.__name__[5:])
     out_file = mod.__name__+'-'+func.__name__[5:]
-    script_src = "\n".join(inspect.getsource(script).split('\n')[1:])
-    script_src = script_src.replace('    ', '')
+    #script_src = "\n".join(inspect.getsource(script).split('\n')[1:])
+    #script_src = script_src.replace('    ', '')
+    script_src = inspect.getsource(script)
+    script_src = script_src + "\n"+script.__name__+"()"
     html = inspect.getdoc(script)
     test_dir = os.path.dirname(inspect.getfile(selenium_setup_helper))+'/selenium/webroot/tests'
 

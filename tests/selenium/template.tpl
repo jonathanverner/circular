@@ -10,8 +10,10 @@
 <script src="../lib/brython/www/src/brython_dist.js"></script>
 
 <script type="text/python">
+
 {{ test }}
 
+from browser import document as doc, html
 doc <= html.SPAN(id='finished')
 </script>
 
