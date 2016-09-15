@@ -1,3 +1,6 @@
+import asyncio
+import pytest
+
 from src.circular.template.context import Context
 
 
@@ -23,4 +26,14 @@ def test_extension():
     second_child = Context(base=child)
     assert second_child.c == 30
     assert second_child.a == 20
+
+
+def test_future(event_loop):
+    asyncio.set_event_loop(event_loop)
+    ctx = Context()
+    fut = asyncio.async(asyncio.sleep(0.1, result=3))
+    ctx.test = fut
+    assert hasattr(ctx, 'test') is False
+    event_loop.run_until_complete(fut)
+    assert ctx.test == 3
 

@@ -2,6 +2,9 @@
     The context Module provides the Context class used for variable lookup
     in expressions, templates etc.
 """
+
+import asyncio
+
 from .observer import ListProxy, DictProxy
 
 
@@ -88,6 +91,13 @@ class Context(object):
                 self._dct[attr] = ListProxy(val)
             elif isinstance(val, dict):
                 self._dct[attr] = DictProxy(val)
+            elif asyncio.iscoroutine(val) or asyncio.iscoroutinefunction(val) or isinstance(val, asyncio.Future):
+                val = asyncio.async(val)
+
+                def set_later(future_val, attr=attr):
+                    setattr(self, attr, future_val.result())
+
+                val.add_done_callback(set_later)
             else:
                 self._dct[attr] = val
 
