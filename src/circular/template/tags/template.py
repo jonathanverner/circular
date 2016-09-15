@@ -3,20 +3,50 @@
     :class:`IncludePlugin` classes.
 """
 
-from browser.html import DIV
-
 from circular.template.tpl import _compile, register_plugin
 from circular.template.expression import parse
 from circular.template.context import Context
-from circular.utils.async import async, async_class, async_init
-from circular.network.http import HTTPRequest
 
 from .tag import TagPlugin
 
 
+class TemplateLoader:
+    """
+        The :class:`TemplateLoader` class takes care of storing and retrieving
+        templates defined/requested by the user or other plugins.
+    """
+    TEMPLATES = {}
+
+    @classmethod
+    def store(cls, context, name, template):
+        """
+            Store the template :param:`template` under the key :param:`name`
+            for the context :param:`context`. The template will be accessible
+            from the given context and any of its children (i.e. those who have
+            it (transitively) as their base).
+        """
+        if context not in cls.TEMPLATES:
+            cls.TEMPLATES[context] = {}
+        cls.TEMPLATES[context][name] = template
+
+    @classmethod
+    def load(cls, context, name):
+        """
+            Returns a template stored under the key :param:`name` for the
+            context :param:`context` or one of its (transitive) bases. If
+            there is no such template, raises an exception.
+        """
+        ctx_tpls = cls.TEMPLATES.get(context, {})
+        if name in ctx_tpls:
+            return ctx_tpls[name].clone()
+        elif isinstance(context._base, Context):
+            return cls.load(context._base, name)
+        raise Exception("Template "+name+" not found")
+
+
 class TemplatePlugin(TagPlugin):
     """
-        The template plugin allows defining templates which can be included
+        The :class:`TemplatePlugin` plugin allows defining templates which can be included
         in other places.
 
         ```
@@ -38,7 +68,7 @@ class TemplatePlugin(TagPlugin):
 
         ```
             <div class='avatar'>
-                <a href='http://me.com'>Johh</a>
+                <a href='http://me.com'>John</a>
             </div>
         ```
     """
@@ -50,12 +80,9 @@ class TemplatePlugin(TagPlugin):
         self._template = _compile(tpl_element)
         self._name = name
 
-    def bind(self, ctx):
-        ctx.circular.TEMPLATE_CACHE[self._name] = self
-
-    def instantiate(self, ctx):
-        tpl_clone = self._template.clone()
-        return tpl_clone
+    def bind_ctx(self, ctx):
+        super().bind_ctx(ctx)
+        TemplateLoader.store(ctx, self._name, self._template)
 
     def clone(self):
         return self
@@ -68,8 +95,8 @@ class Include(TagPlugin):
     """
         The :class:`Include` plugin allows instantiating templates
         saved in the template cache. Assuming a template ``avatar`` was
-        declared in the current context (e.g. via :class:`TemplatePlugin`)
-        one can include it as follows:
+        declared in the current (or some base) context
+        (e.g. via :class:`TemplatePlugin`) one can include it as follows:
 
         ```
             <include name='avatar'/>
@@ -94,8 +121,11 @@ class Include(TagPlugin):
 
     def bind_ctx(self, ctx):
         super().bind_ctx(ctx)
-        self._tpl_instance = ctx.circular.TEMPLATE_CACHE[self._name].instantiate(ctx)
+        self._tpl_instance = TemplateLoader.load(ctx, self._name)
         return self._tpl_instance.bind_ctx(ctx)
 
     def update(self):
         return self._tpl_instance.update()
+
+register_plugin(Include)
+register_plugin(TemplatePlugin)
