@@ -4,6 +4,7 @@ autopep8==1.2.4
 Babel==2.3.4
 backports-abc==0.4
 bcrypt==2.0.0
+beautifulsoup4==4.5.1
 cffi==1.6.0
 CommonMark==0.5.4
 coverage==4.2
