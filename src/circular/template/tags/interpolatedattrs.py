@@ -41,35 +41,36 @@ class InterpolatedAttrsPlugin(TagPlugin):
                 self.values[name] = obs
             self.child = tpl_element.child.clone()
         else:
-            for attr in tpl_element.attributes:
-                if '{{' in attr.value:
-                    obs = InterpolatedStr(attr.value)
+            attrs = tpl_element.attrs.copy()
+            for (attr, value) in attrs.items():
+                if '{{' in value:
+                    obs = InterpolatedStr(value)
                     obs.bind('change', self._self_change_chandler)
                 else:
-                    obs = attr.value
-                self.values[attr.name] = obs
-                tpl_element.removeAttribute(attr.name)
+                    obs = value
+                self.values[attr] = obs
+                del tpl_element[attr]
             self.child = _compile(tpl_element)
         self.child.bind('change', self._subtree_change_handler)
 
     def bind_ctx(self, ctx):
         super().bind_ctx(ctx)
         self.element = self.child.bind_ctx(ctx)
-        for (name, obs) in self.values.items():
+        for (attr, obs) in self.values.items():
             if isinstance(obs, InterpolatedStr):
                 obs.bind_ctx(ctx)
-                self.element.setAttribute(name, obs.value)
+                self.element[attr] = obs.value
             else:
-                self.element.setAttribute(name, obs)
+                self.element[attr] = obs
         return self.element
 
     def update(self):
         if self._dirty_self and self._bound:
-            for (name, obs) in self.values.items():
+            for (attr, obs) in self.values.items():
                 if isinstance(obs, InterpolatedStr):
-                    self.element.setAttribute(name, obs.value)
+                    self.element[attr] = obs.value
                 else:
-                    self.element.setAttribute(name, obs)
+                    self.element[attr] = obs
             self._dirty_self = False
         if self._dirty_subtree:
             self._dirty_subtree = False
@@ -77,11 +78,11 @@ class InterpolatedAttrsPlugin(TagPlugin):
 
     def __repr__(self):
         attrs = []
-        for (name, obs) in self.values.items():
+        for (attr, obs) in self.values.items():
             if isinstance(obs, InterpolatedStr):
                 # pylint: disable=protected-access; eventually, this should be fixed, but __repr__ is not a user facing
                 #                                   function, so for the time being ignore it
-                attrs.append(name + "='" + obs.value + "' (" + obs._src + ")")
+                attrs.append(attr + "='" + obs.value + "' (" + obs._src + ")")
             else:
-                attrs.append(name + "=" + obs)
+                attrs.append(attr + "=" + obs)
         return "<Attrs " + " ".join(attrs) + " >"

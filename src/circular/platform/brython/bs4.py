@@ -1,6 +1,8 @@
 from browser import document, window
 from javascript import JSObject
 
+from circular.platform.common.bs4 import NodeType
+
 
 def dom_from_html(html):
     """
@@ -15,12 +17,38 @@ class Tag:
     def __init__(self, element_or_html):
         if isinstance(element_or_html, str):
             element_or_html = dom_from_html(element_or_html)[0].elt
-        self._elt = JSObject(element_or_html)
-        if self._elt.nodeType == self._elt.ELEMENT_NODE:
+
+        if self._elt.nodeType == NodeType.ELEMENT:
             self.name = self._elt.tagName
 
     def get(self, key):
         return self._elt.getAttribute(key)
+
+    @property
+    def type(self):
+        return self._elt.nodeType
+
+    @property
+    def string(self):
+        return self._elt.text
+
+    @string.setter
+    def string(self, value):
+        self._elt.text = value
+
+    @property
+    def value(self):
+        return self._elt.value
+
+    @value.setter
+    def value(self, val):
+        self._elt.value = val
+
+    def bind(self, event, handler):
+        self._elt.bind(event, handler)
+
+    def clone(self):
+        return Tag(self._elt.clone())
 
     @property
     def parent(self):
@@ -82,15 +110,15 @@ class Tag:
 
     @property
     def contents(self):
-        return [Tag(ch) for ch in self._elt.children]
+        return [Tag(ch) for ch in self._elt.childNodes]
 
     @property
     def children(self):
-        return iter(self.contents())
+        return iter(self.contents)
 
     @property
     def descendants(self):
-        for ch in self._elt.children:
+        for ch in self._elt.childNodes:
             t = Tag(ch)
             yield t
             for d in t.descendants:
@@ -108,21 +136,64 @@ class Tag:
         else:
             self._elt.insertBefore(tag_or_text._elt, self._elt.children[pos])
 
-    def __getitem__(self, key):
-        ret = self._elt.getAttribute(key)
+    @property
+    def attrs(self):
+        ret = {}
+        for attr in self._elt.attributes:
+            if attr.name in ['class', 'rev', 'accept-charset', 'headers', 'accesskey']:
+                attr_vals = attr.value.split(' ')
+                if len(attr_vals) == 1:
+                    ret[attr.name] = attr_vals[0]
+                else:
+                    ret[attr.name] = attr_vals
+            else:
+                ret[attr.name] = attr.value
+        return ret
+
+    def replace_with(self, tag):
+        self.parent._elt.replaceChild(self._elt, tag._elt)
+        return self
+
+    def insert_before(self, tag):
+        self.parent._elt.insertBefore(tag._elt, self._elt)
+
+    def insert_after(self, tag):
+        self.parent._elt.insertAfter(tag._elt, self._elt)
+
+    def append(self, tag):
+        self._elt.appendChild(tag._elt)
+
+    def __del__(self):
+        del self._elt
+
+    def __iter__(self):
+        for ch in self.contents:
+            yield ch
+
+    def __getitem__(self, attr):
+        ret = self._elt.getAttribute(attr)
         if ret is None:
-            raise KeyError(key)
+            raise KeyError(attr)
         else:
-            if key in ['class', 'rev', 'accept-charset', 'headers', 'accesskey']:
+            if attr in ['class', 'rev', 'accept-charset', 'headers', 'accesskey']:
                 ret = ret.split(' ')
                 if len(ret) == 1:
                     ret = ret[0]
             return ret
 
-    def __setitem__(self, key, value):
+    def __delitem__(self, attr):
+        self._elt.removeAttribute(attr)
+
+    def __setitem__(self, attr, value):
         if isinstance(value, list):
             value = ' '.join(list)
-        self._elt.setAttribute(key, value)
+        self._elt.setAttribute(attr, value)
+
+    def __repr__(self):
+        if self._elt.nodeType == NodeType.ELEMENT:
+            return "<"+self.name+" "+" ".join([a.name+"="+a.value for a in self._elt.attributes])+">"
+        else:
+            return "<DOMNode type='"+str(self._elt.nodeType)+"'>"
 
 
 def _test_attrs(tag, attrs):
@@ -189,7 +260,7 @@ class Document:
 
     @property
     def children(self):
-        return iter(self.contents())
+        return iter(self.contents)
 
     @property
     def descendants(self):
@@ -203,7 +274,7 @@ class Document:
         return self[selector]
 
     def __getitem__(self, selector):
-        return [Tag(l) for l in window.document.querySelectorAll(key)]
+        return [Tag(l) for l in window.document.querySelectorAll(selector)]
 
     def __getattr__(self, name):
         return self.find(name)

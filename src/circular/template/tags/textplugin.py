@@ -40,8 +40,8 @@ class TextPlugin(TagPlugin):
                 self._dirty_self = False
                 self._dirty_subtree = False
         else:
-            if '{{' in tpl_element.text:
-                self.interpolated_str = InterpolatedStr(tpl_element.text)
+            if '{{' in tpl_element.string:
+                self.interpolated_str = InterpolatedStr(tpl_element.string)
                 self.interpolated_str.bind('change', self._self_change_chandler)
             else:
                 self._dirty_self = False
@@ -53,14 +53,14 @@ class TextPlugin(TagPlugin):
         if self.interpolated_str is not None:
             super().bind_ctx(ctx)
             self.interpolated_str.bind_ctx(ctx)
-            self.element.text = self.interpolated_str.value
+            self.element.string = self.interpolated_str.value
             self._dirty_self = False
             self._dirty_subtree = False
         return self.element
 
     def update(self):
         if self._dirty_self and self._bound:
-            self.element.text = self.interpolated_str.value
+            self.element.string = self.interpolated_str.value
             self._dirty_self = False
 
     def __repr__(self):
@@ -68,6 +68,6 @@ class TextPlugin(TagPlugin):
         #                                    be fixed, but since __repr__ is not to be used in user-facing code, it should be
         #                                    fine for the moment)
         if self.interpolated_str is not None:
-            return "<Text '"+self.interpolated_str._src.replace("\n", "\\n")+"' => '"+self.element.text.replace("\n", "\\n")+"'>"
+            return "<Text '"+self.interpolated_str._src.replace("\n", "\\n")+"' => '"+self.element.string.replace("\n", "\\n")+"'>"
         else:
-            return "<Text '" + self.element.text.replace("\n", "\\n") + "'>"
+            return "<Text '" + self.element.string.replace("\n", "\\n") + "'>"

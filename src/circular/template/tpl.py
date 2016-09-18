@@ -3,6 +3,7 @@
     templates.
 """
 from browser import timer
+from circular.platform.bs4 import NodeType
 
 try:
     from ..utils.events import EventMixin
@@ -75,19 +76,22 @@ def _build_kwargs(element, plugin):
     """
     lookup_table = PrefixLookupDict(plugin['args'])
     kwargs = {}
-    for attr in element.attributes:
-        if attr.name in lookup_table:
-            kwargs[lookup_table[attr.name]] = attr.value
-            element.removeAttribute(attr.name)
+    attrs = element.attrs.copy()
+    for (attr, value) in attrs.items():
+        if attr in lookup_table:
+            kwargs[lookup_table[attr]] = value
+            del element[attr]
     return kwargs
 
 
 def _compile(tpl_element):
     """
         A function used internally by the Template class and plugins
-        to recursively parse a dom-tree into a template. The argument
-        is a tpl_element. It returns an instance of the ``TagPlugin``
-        class representing the root of the template at ``tpl_element``.
+        to recursively parse a dom-tree into a template.
+        The argument :param:`tpl_element` should be an instance of
+        the class :class:`bs4.Tag`. The function returns an instance
+        of the :class:`TagPlugin` class representing the root of the
+        template at :param:`tpl_element`.
 
         The function works as follows:
 
@@ -112,20 +116,21 @@ def _compile(tpl_element):
             by not calling the _compile function)
 
     """
-    if tpl_element.nodeName == '#text':
+    if tpl_element.type == NodeType.TEXT:
         # Interpolated text node plugin
         return TextPlugin(tpl_element)
 
-    if not hasattr(tpl_element, '_plugins'):
+    if tpl_element.get('_plugins') is None:
         # This is the first pass over tpl_element,
         # we need to find out what the plugins are
         # and remove their params from the element
         # and save them for later
         plugin_metas = []
-        for attr in tpl_element.attributes:
-            if attr.name in PLUGINS:
-                plugin_metas.append((attr.value, PLUGINS[attr.name]))
-                tpl_element.removeAttribute(attr.name)
+        attrs = tpl_element.attrs.copy()
+        for (attr, value) in attrs.items():
+            if attr in PLUGINS:
+                plugin_metas.append((value, PLUGINS[attr]))
+                del tpl_element[attr]
 
         # Order the plugins by priority
         plugin_metas.sort(key=lambda x: x[1]['priority'])
@@ -133,22 +138,23 @@ def _compile(tpl_element):
         for (arg, plugin) in plugin_metas:
             plugins.append((plugin, [arg], _build_kwargs(tpl_element, plugin)))
 
-        if tpl_element.nodeName in PLUGINS:
-            tplug = PLUGINS[tpl_element.nodeName]
+        if tpl_element.name in PLUGINS:
+            tplug = PLUGINS[tpl_element.name]
             plugins.append(tplug, [], _build_kwargs(tpl_element, tplug))
 
-        setattr(tpl_element, '_plugins', plugins)
+        tpl_element['_plugins'] = plugins
 
-    plugins = getattr(tpl_element, '_plugins')
+    plugins = tpl_element['_plugins']
 
     # Now we initialize the first plugin, if any
     if len(plugins) > 0:
         plug_meta, args, kwargs = plugins.pop()
         return plug_meta['class'](tpl_element, *args, **kwargs)
+    del tpl_element['_plugins']
 
     # If there are any attributes left, we initialize the
     # InterpolatedAttrsPlugin
-    if len(tpl_element.attributes) > 0:
+    if len(tpl_element.attrs) > 0:
         return InterpolatedAttrsPlugin(tpl_element)
 
     # Finally, since no other plugin is found, return the GenericTag plugin
@@ -227,7 +233,7 @@ class Template(EventMixin):
 
     def bind_ctx(self, ctx):
         elem = self.root.bind_ctx(ctx)
-        self.elem.parent.replaceChild(elem, self.elem)
+        self.elem.replace_with(elem)
         self.elem = elem
         self.root.bind('change', self._start_timer)
 
@@ -243,4 +249,5 @@ class Template(EventMixin):
         if self.update_timer is not None:
             timer.clear_interval(self.update_timer)
         self.update_timer = None
+
 from .tags import *
