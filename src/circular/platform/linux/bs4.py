@@ -48,7 +48,7 @@ _BS4.Comment.clone = clone
 class Document(_BS4.BeautifulSoup):
 
     def __init__(self):
-        super().__init__("<html><body></body></html>", "html5lib")
+        super().__init__("<html><body></body></html>", "html.parser")
 
     def __getitem__(self, selector):
         return self.select(selector)
